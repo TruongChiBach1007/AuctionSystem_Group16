@@ -13,29 +13,40 @@ public class Auction {
 
     public boolean placeBid(Bid bid) {
         synchronized (lock) { // chỉ có 1 thread đợc xảy ra tại thời điểm đó
-            if (closed){
+            if (closed) {
                 throw new IllegalStateException("Phiên đã kết thúc!");
             }
             if (bid == null || bid.getBidder() == null) {
                 throw new IllegalArgumentException("Bid không hợp lệ!");
             }
-            if (bid.getAmount()<=currentPrice){
+            if (bid.getAmount() <= currentPrice) {
                 throw new IllegalArgumentException("Bid không hợp lệ! ");
             }
-            currentPrice=bid.getAmount();
-            highestBidder=bid.getBidder();
-            System.out.println("New bid :" + currentPrice+ "by" +highestBidder.getName());
+            currentPrice = bid.getAmount();
+            highestBidder = bid.getBidder();
+            System.out.println("New bid :" + currentPrice + "by" + highestBidder.getName());
 
             return true;
         }
     }
+
     public void closeAuction() {
         synchronized (lock) {
             closed = true;
-            if(highestBidder!=null) {
+            if (highestBidder != null) {
                 System.out.println("Winner: " + highestBidder.getName());
             }
         }
     }
-}
 
+    public Bidder getHighestBidder() {
+        return highestBidder;
+    }
+
+    public Double getCurrentPrice() {
+        return currentPrice;
+    }
+    public boolean isClosed() {
+        return closed;
+    }
+}
