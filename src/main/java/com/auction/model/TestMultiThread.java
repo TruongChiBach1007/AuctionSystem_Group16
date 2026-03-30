@@ -13,7 +13,7 @@ public class TestMultiThread {
         });
 
         Thread t2 = new Thread(() -> {
-            auction.placeBid(new Bid(b, 200));
+            auction.placeBid(new Bid(b, 201));
         });
 
         t1.start();
