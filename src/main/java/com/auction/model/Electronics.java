@@ -10,6 +10,14 @@ public class Electronics extends Item {
         this.warrantyMonths = warrantyMonths;
     }
 
+    public int getWarrantyMonths() {
+        return warrantyMonths;
+    }
+
+    public void setWarrantyMonths(int warrantyMonths) {
+        this.warrantyMonths = warrantyMonths;
+    }
+
     @Override
     public String getDetailedInfo() {
         return "Danh mục: Đồ điện tử. Bảo hành: " + warrantyMonths + " tháng.";

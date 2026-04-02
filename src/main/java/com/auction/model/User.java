@@ -1,9 +1,8 @@
 package com.auction.model;
 
-/**
- * Lớp trừu tượng đại diện cho người dùng trong hệ thống[cite: 114].
- * Áp dụng tính trừu tượng (Abstraction) để định nghĩa khung cơ bản[cite: 122].
- */
+//Lớp trừu tượng đại diện cho người dùng trong hệ thống
+//  Áp dụng tính trừu tượng (Abstraction) để định nghĩa khung cơ bản
+
 public abstract class User {
     private int id;
     private String username;

@@ -8,6 +8,14 @@ public class Vehicle extends Item {
         this.engineCapacity = engineCapacity;
     }
 
+    public double getEngineCapacity() {
+        return engineCapacity;
+    }
+
+    public void setEngineCapacity(double engineCapacity) {
+        this.engineCapacity = engineCapacity;
+    }
+
     @Override
     public String getDetailedInfo() {
         return "Phương tiện: Động cơ " + engineCapacity + "L.";
