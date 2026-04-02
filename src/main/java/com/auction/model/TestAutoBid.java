@@ -6,8 +6,8 @@ public class TestAutoBid {
         //tạo phòng đấu gia
         Auction auction = new Auction(100);
         //tạo user
-        Bidder userA = new Bidder(1, "Người đặt tay ","a","bach","2@",1.2);
-        Bidder AutoB = new Bidder(2, "Người dùng Auto","b","robot","3@",1.3);
+        Bidder userA = new Bidder(1, "Người đặt tay ","a","bach","2@",160);
+        Bidder AutoB = new Bidder(2, "Người dùng Auto","b","robot","3@",500);
         //đăng ký robot cho B
 
         AutoBid setting = new AutoBid(AutoB,500,10);
