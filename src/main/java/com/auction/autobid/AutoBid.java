@@ -15,7 +15,6 @@ public class AutoBid {
     public Bidder getBidder() {
         return bidder;
     }
-
     public double getMaxBid() {
         return maxBid;
     }
