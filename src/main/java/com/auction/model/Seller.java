@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Seller extends User {
-    // Thuộc tính riêng: Danh sách các tên sản phẩm mà người bán này đang đăng [cite: 39]
+    // Thuộc tính riêng: Danh sách các tên sản phẩm mà người bán này đang đăng
     private List<String> listedItems;
 
     public Seller(int id, String username, String password, String fullName, String email) {
@@ -13,7 +13,7 @@ public class Seller extends User {
         this.listedItems = new ArrayList<>();
     }
 
-    // Chức năng: Thêm sản phẩm mới vào danh sách quản lý của người bán [cite: 40]
+    // Chức năng: Thêm sản phẩm mới vào danh sách quản lý của người bán
     public void addListedItem(String itemName) {
         listedItems.add(itemName);
     }
