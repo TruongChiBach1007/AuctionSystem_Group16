@@ -6,9 +6,9 @@ public class ItemFactory {
         if (type == null) return null;
         switch (type.toLowerCase()) {
             case "Electronics":
-                return new Electronics(id, name, description, startPrice, currentPrice, (int) extra);
+                return new Electronics(id, name, description, startPrice, currentPrice);
             case "Art":
-                return new Art(id, name, description, startPrice, currentPrice, (String) extra);
+                return new Art(id, name, description, startPrice, currentPrice);
             case "Vehicle":
                 return new Vehicle(id, name, description, startPrice, currentPrice, (double) extra);
             default:

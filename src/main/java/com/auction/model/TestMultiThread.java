@@ -1,12 +1,16 @@
 package com.auction.model;
 // test xem nhiều người cùng nhảy vào đặt giá một lúc hay không
+import java.util.Date;
+
 public class TestMultiThread {
     public static void main(String[] args) throws Exception {
 
-        Auction auction = new Auction(100);
+        Auction auction = new Auction(100,5000);
 
-        Bidder a = new Bidder(1,"A","t","ABC","1@",1.2);
-        Bidder b = new Bidder(2,"B","x","ABC","1@",1.3);
+        System.out.println("Thời gian kết thúc dự kiến ban đầu :"+new Date(auction.getEndTime()));
+
+        Bidder a = new Bidder(1,"A","t","LOL","1@",200);
+        Bidder b = new Bidder(2,"B","x","ABC","1@",300);
 
         Thread t1 = new Thread(() -> {
             auction.placeBid(new Bid(a, 150));
@@ -22,6 +26,8 @@ public class TestMultiThread {
         t1.join();
         t2.join();
 
+
+        System.out.println("Thời gian kết thúc mới: " + new Date(auction.getEndTime()));
         System.out.println("Final price: " + auction.getCurrentPrice());
         System.out.println("Winner: " + auction.getHighestBidder().getFullName());
     }

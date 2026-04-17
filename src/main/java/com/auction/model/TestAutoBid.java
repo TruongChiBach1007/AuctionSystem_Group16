@@ -4,7 +4,7 @@ import com.auction.autobid.AutoBid;
 public class TestAutoBid {
     public static void main(String[] args) {
         //tạo phòng đấu gia
-        Auction auction = new Auction(100);
+        Auction auction = new Auction(100,10000000);
         //tạo user
         Bidder userA = new Bidder(1, "Người đặt tay ","a","bach","2@",160);
         Bidder AutoB = new Bidder(2, "Người dùng Auto","b","robot","3@",500);

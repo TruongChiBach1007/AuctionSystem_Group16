@@ -1,32 +1,56 @@
 package com.auction.model;
 
+import com.auction.Pattern.AuctionObserver;
 import com.auction.autobid.AutoBid;
 import com.auction.exceptions.InvalidBidException;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 
 public class Auction {
     private double currentPrice;
     private Bidder highestBidder;
     private boolean closed = false; // trạng thái phiên đang mở
 
+    // --- BỔ SUNG BIẾN THỜI GIAN ---
+    private long endTime; // Thời gian kết thúc (timestamp)
+    private final long SNIPING_WINDOW = 10000; // 10 giây cuối
+    private final long EXTEND_TIME = 60000;    // Gia hạn thêm 60 giây
+
+
+
     private final Object lock = new Object(); //synchronized
     private List<AutoBid> autoBids = new ArrayList<>();
+    // Danh sách người quan sát
+    private List<AuctionObserver> observers = new ArrayList<>();
 
-    public Auction(double starPrice) {
+    public Auction(double starPrice,long durationMillis) {
         this.currentPrice = starPrice;
+        this.endTime = System.currentTimeMillis() + durationMillis;
+    }
+    //đăng ký observer
+    public void addObserver(AuctionObserver observer){
+        synchronized (lock){
+            observers.add(observer);
+        }
+    }
+    //thông báo cho tất cả Observer
+    private void notifyUpdate() {
+        for (AuctionObserver obs : observers) {
+            obs.BidUpdate(currentPrice, highestBidder.getFullName());
+        }
     }
     public void registerAutoBid(AutoBid autoBid) {//autoBid lấy thuộc tinh AutoBid
         synchronized (lock) {
             autoBids.add(autoBid);
-            //?
         }
     }
     //
     public boolean placeBid(Bid bid) {
-        synchronized (lock) { // chỉ có 1 thread đợc xảy ra tại thời điểm đó
-            if (closed) {
+        synchronized (lock) {// chỉ có 1 thread đợc xảy ra tại thời điểm đó
+            long currentTime = System.currentTimeMillis();
+            if (closed|| currentTime> endTime) {
+                this.closed=true;
                 throw new IllegalStateException("Phiên đã kết thúc!");
             }
             if (bid == null || bid.getBidder() == null) {
@@ -40,11 +64,16 @@ public class Auction {
                 System.out.println("Từ chối Bid: " + bidder.getFullName() + " không đủ số dư (Hiện có: " + bidder.getBalance() + ")");
                 return false; // Trả về false để báo hiệu đặt giá không thành công
             }
-
-
-            if (bid.getAmount() <= currentPrice) {
+            if (bidAmount <= currentPrice) {
                 throw new IllegalArgumentException("Bid không hợp lệ! Vui lòng đặt giá cao hơn ");
             }
+            //LOGIC ANTI-SNIPING
+            //NẾU ĐẶT GIÁ THÀNH CÔNG TRONG 10S CUỐI THÌ GIA HẠN THÊM 60S
+            if(endTime - currentTime <=SNIPING_WINDOW){
+                this.endTime+= EXTEND_TIME;
+                System.out.println("Phiên gia hạn thêm 1 phút ! " +new Date(endTime));
+            }
+
             currentPrice = bidAmount;
             highestBidder = bidder;
             System.out.println("New bid :" + currentPrice + "by" + highestBidder.getFullName());
@@ -66,9 +95,8 @@ public class Auction {
 
                 if (nextBid <= auto.getMaxBid() && nextBid <= auto.getBidder().getBalance()) {
                     currentPrice = nextBid;
-                    currentPrice = nextBid;
                     highestBidder = auto.getBidder();
-                    System.out.println("AutoBid: " + currentPrice + " by " + highestBidder.getFullName());
+                    notifyUpdate(); //update khi robot nâng giá thành coong
                     updated = true;
                     }
                 }
@@ -78,20 +106,19 @@ public class Auction {
 
     public void closeAuction() {
         synchronized (lock) {
+            if (closed) return;
             closed = true;
-            System.out.println("PHIÊN ĐẤU GIÁ ĐÃ KẾT THÚC");
-            if (highestBidder != null) {
-                System.out.println("Winner: " + highestBidder.getFullName());
+            String winnerName = (highestBidder != null) ? highestBidder.getFullName() : "Không có";
+            double finalPrice =this.currentPrice;
+
+            //  Thông báo kết thúc cho Observers
+            for (AuctionObserver obs : observers) {
+                obs.AuctionClosed(winnerName, finalPrice);
             }
         }
     }
-
-    public Bidder getHighestBidder() {
-        return highestBidder;
-    }
-    public Double getCurrentPrice() {
-        return currentPrice;
-    }
-    public boolean isClosed() {
-        return closed;}
+    public long getEndTime() { return endTime; }
+    public Bidder getHighestBidder() {return highestBidder;}
+    public Double getCurrentPrice() {return currentPrice;}
+    public boolean isClosed() {return closed;}
 }
