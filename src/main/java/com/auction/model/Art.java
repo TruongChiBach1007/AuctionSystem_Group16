@@ -8,6 +8,14 @@ public class Art extends Item {
         this.artist = artist;
     }
 
+    public String getArtist() {
+        return artist;
+    }
+
+    public void setArtist(String artist) {
+        this.artist = artist;
+    }
+
     @Override
     public String getDetailedInfo() {
         return "Tác phẩm nghệ thuật - Họa sĩ: " + artist;
