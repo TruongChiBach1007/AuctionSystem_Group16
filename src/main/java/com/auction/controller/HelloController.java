@@ -1,8 +1,6 @@
 package com.auction.controller;
 
-import com.auction.exceptions.AuctionClosedException;
-import com.auction.exceptions.InvalidBidException;
-import com.auction.model.Item;
+import com.auction.model.items.Item;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

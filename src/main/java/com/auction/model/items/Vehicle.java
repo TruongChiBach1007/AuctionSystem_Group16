@@ -1,4 +1,4 @@
-package com.auction.model;
+package com.auction.model.items;
 
 public class Vehicle extends Item {
     private double engineCapacity;

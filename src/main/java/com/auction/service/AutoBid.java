@@ -1,5 +1,5 @@
-package com.auction.autobid;
-import com.auction.model.Bidder;
+package com.auction.service;
+import com.auction.model.users.Bidder;
 
 public class AutoBid {
     private Bidder bidder;

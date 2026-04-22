@@ -1,4 +1,6 @@
-package com.auction.model;
+package com.auction.model.core;
+
+import com.auction.model.users.Bidder;
 
 public class Bid {
     private Bidder bidder;

@@ -1,5 +1,8 @@
-package com.auction.Pattern;
-import com.auction.model.*;
+package com.auction.pattern;
+import com.auction.model.items.Art;
+import com.auction.model.items.Electronics;
+import com.auction.model.items.Item;
+import com.auction.model.items.Vehicle;
 
 public class ItemFactory {
     // Thêm tham số 'extraValue' kiểu Object để linh hoạt cho mọi loại hàng

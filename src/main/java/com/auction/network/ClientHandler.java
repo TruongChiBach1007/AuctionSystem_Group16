@@ -1,7 +1,7 @@
 package com.auction.network;
 
-import com.auction.model.Auction;
-import com.auction.model.Bid;
+import com.auction.model.core.Auction;
+import com.auction.model.core.Bid;
 import java.io.*;
 import java.net.Socket;
 

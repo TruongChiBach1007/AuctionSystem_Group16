@@ -1,4 +1,4 @@
-package com.auction.Pattern;
+package com.auction.pattern;
 public interface AuctionObserver {
     //gửi thông báo khi có giá mới
     void BidUpdate(double newPrice,String bidderName);

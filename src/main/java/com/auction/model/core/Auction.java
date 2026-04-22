@@ -1,8 +1,9 @@
-package com.auction.model;
+package com.auction.model.core;
 
-import com.auction.Pattern.AuctionObserver;
-import com.auction.autobid.AutoBid;
-import com.auction.exceptions.InvalidBidException;
+import com.auction.model.users.Bidder;
+import com.auction.pattern.AuctionObserver;
+import com.auction.service.AutoBid;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;

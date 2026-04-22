@@ -1,3 +1,3 @@
-package com.auction.security;
+package com.auction.utils;
 public class InputValidator {
 }
