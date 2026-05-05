@@ -18,7 +18,7 @@ public class ItemFactory {
             case "vehicle":
                 // Ép kiểu extraValue về double để truyền vào engineCapacity của Vehicle
                 double capacity = (double) extraValue;
-                return new Vehicle(id, name, description, startingPrice, startingPrice, capacity);
+                return new Vehicle(id, name, description, startingPrice, startingPrice);
 
             default:
                 throw new IllegalArgumentException("Loại hàng không tồn tại!");

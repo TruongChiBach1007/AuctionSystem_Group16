@@ -1,6 +1,6 @@
 package com.auction.network;
 
-import com.auction.model.Auction;
+import com.auction.model.core.Auction;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;

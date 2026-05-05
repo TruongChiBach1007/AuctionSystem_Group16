@@ -3,7 +3,7 @@ package com.auction.model.items;
 public class Vehicle extends Item {
     private double engineCapacity;
 
-    public Vehicle(String id, String name, String description, double startingPrice, double currentPrice, double engineCapacity) {
+    public Vehicle(String id, String name, String description, double startingPrice, double currentPrice) {
         super(id, name, description, startingPrice, currentPrice);
         this.engineCapacity = engineCapacity;
     }
