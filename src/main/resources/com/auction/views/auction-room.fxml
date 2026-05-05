@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<!-- Khung nền xám nhạt -->
+<BorderPane prefWidth="1100" prefHeight="700" style="-fx-background-color: #f4f7f6;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AuctionRoomController">
+
+    <!-- HEADER: Nút Quay Lại & Tiêu đề -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: white; -fx-padding: 15 25; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);">
+
+            <!-- NÚT QUAY LẠI TRANG CHỦ -->
+            <Button text="⬅ Quay lại Trang Chủ" onAction="#handleBackToDashboard" style="-fx-background-color: #ecf0f1; -fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5; -fx-padding: 8 15;"/>
+
+            <Label text="SÀN ĐẤU GIÁ TRỰC TIẾP" style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: #1976D2;"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Label text="🔥 Đang diễn ra" style="-fx-text-fill: #e74c3c; -fx-font-weight: bold; -fx-font-size: 14; -fx-background-color: #fadbd8; -fx-padding: 5 15; -fx-background-radius: 20;"/>
+        </HBox>
+    </top>
+
+    <!-- NỘI DUNG CHÍNH (Chia 2 cột) -->
+    <center>
+        <HBox spacing="20" style="-fx-padding: 20;">
+
+            <!-- CỘT TRÁI: BẢNG SẢN PHẨM & Ô ĐẶT GIÁ -->
+            <VBox spacing="15" prefWidth="450" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);" HBox.hgrow="ALWAYS">
+                <Label text="📋 Lịch sử đặt giá" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #2c3e50;"/>
+
+                <!-- BẢNG DANH SÁCH -->
+                <TableView fx:id="auctionTable" VBox.vgrow="ALWAYS" style="-fx-border-color: #bdc3c7; -fx-border-radius: 5;">
+                    <columns>
+                        <TableColumn fx:id="nguoiDatCol" text="Người đặt" prefWidth="150"/>
+                        <TableColumn fx:id="giaCol" text="Mức giá (VND)" prefWidth="150"/>
+                    </columns>
+                </TableView>
+
+                <!-- KHU VỰC NHẬP GIÁ -->
+                <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
+                    <TextField fx:id="bidInput" promptText="Nhập giá (VND)..." prefWidth="200" style="-fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #3498db; -fx-border-radius: 5; -fx-font-size: 14;"/>
+
+                    <Button text="🚀 ĐẶT GIÁ" onAction="#handlePlaceBid" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 10 20; -fx-background-radius: 5; -fx-cursor: hand;" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label fx:id="statusLabel" text="Chào mừng bạn đến với phiên đấu giá!" wrapText="true" style="-fx-text-fill: #27ae60; -fx-font-style: italic; -fx-font-weight: bold;"/>
+            </VBox>
+
+            <!-- CỘT PHẢI: BIỂU ĐỒ LINECHART -->
+            <VBox spacing="15" prefWidth="600" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);" HBox.hgrow="ALWAYS">
+                <Label text="📈 Biểu đồ lịch sử giá" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #2c3e50;"/>
+
+                <LineChart fx:id="priceChart" VBox.vgrow="ALWAYS" createSymbols="true" animated="true" style="-fx-cursor: crosshair;">
+                    <xAxis>
+                        <NumberAxis label="Lượt đặt" autoRanging="true"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="Giá (VND)" autoRanging="true"/>
+                    </yAxis>
+                </LineChart>
+            </VBox>
+
+        </HBox>
+    </center>
+</BorderPane>

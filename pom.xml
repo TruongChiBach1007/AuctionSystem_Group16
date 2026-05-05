@@ -56,7 +56,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>com.auction.AuctionApp</mainClass>
+                    <mainClass>com.auction.client.AuctionApp</mainClass>
                 </configuration>
             </plugin>
 
@@ -68,7 +68,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.auction.AuctionApp</mainClass>
+                            <mainClass>com.auction.client.AuctionApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

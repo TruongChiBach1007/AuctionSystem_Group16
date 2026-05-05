@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Rectangle?>
+
+<!-- Đã gắn Controller xử lý vào đây -->
+<BorderPane prefWidth="1200" prefHeight="700" style="-fx-background-color: #f4f7f6;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BidderDashboardController">
+
+    <!-- 1. HEADER -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: white; -fx-padding: 15 30; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0;">
+            <Label text="AUCTION.IO" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #1976D2;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <TextField promptText="🔍 Tìm kiếm sản phẩm..." prefWidth="400" style="-fx-background-radius: 20; -fx-padding: 8 15; -fx-border-color: #bdc3c7; -fx-border-radius: 20;"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <!-- Đã thêm fx:id để code Java có thể đổi tên người dùng -->
+            <VBox alignment="CENTER_RIGHT">
+                <Label fx:id="lblUsername" text="Tên TK: " style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2c3e50;"/>
+                <Label fx:id="lblBalance" text="Số dư: 0 VNĐ" style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #27ae60;"/>
+            </VBox>
+
+            <!-- Nút Đăng xuất có gắn sự kiện -->
+            <Button text="Đăng xuất" onAction="#handleLogout" style="-fx-background-color: transparent; -fx-border-color: #e74c3c; -fx-text-fill: #e74c3c; -fx-border-radius: 5; -fx-cursor: hand;"/>
+        </HBox>
+    </top>
+
+    <!-- 2. SIDEBAR TRÁI (Đã nâng cấp Menu sổ xuống) -->
+    <left>
+        <VBox spacing="15" prefWidth="250" style="-fx-background-color: white; -fx-padding: 20; -fx-border-color: #e0e0e0; -fx-border-width: 0 1 0 0;">
+            <Label text="DANH SÁCH SẢN PHẨM" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #7f8c8d;"/>
+
+            <Accordion>
+                <panes>
+                    <TitledPane text="💻 ĐỒ ĐIỆN TỬ" animated="true" style="-fx-font-weight: bold; -fx-text-fill: #1976D2;">
+                        <content>
+                            <VBox spacing="8" style="-fx-background-color: #f8f9fa; -fx-padding: 10 15;">
+                                <Button text="• iPhone 15 Pro Max" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                                <Button text="• MacBook Pro M3" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                                <Button text="• Tai nghe AirPods" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                            </VBox>
+                        </content>
+                    </TitledPane>
+
+                    <TitledPane text="🎨 NGHỆ THUẬT" animated="true" style="-fx-font-weight: bold; -fx-text-fill: #34495e;">
+                        <content>
+                            <VBox spacing="8" style="-fx-background-color: #f8f9fa; -fx-padding: 10 15;">
+                                <Button text="• Bức họa Đêm Đầy Sao" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                                <Button text="• Tranh Đông Hồ" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                                <Button text="• Tượng điêu khắc" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                            </VBox>
+                        </content>
+                    </TitledPane>
+
+                    <TitledPane text="🚗 PHƯƠNG TIỆN" animated="true" style="-fx-font-weight: bold; -fx-text-fill: #34495e;">
+                        <content>
+                            <VBox spacing="8" style="-fx-background-color: #f8f9fa; -fx-padding: 10 15;">
+                                <Button text="• Honda Civic 2024" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                                <Button text="• VinFast VF8" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                                <Button text="• Xe đạp thể thao" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #2c3e50;"/>
+                            </VBox>
+                        </content>
+                    </TitledPane>
+                </panes>
+            </Accordion>
+
+            <!-- NÚT NÀY PHẢI Ở NGOÀI ACCORDION -->
+            <Separator/>
+            <Button text="+ Đăng sản phẩm" onAction="#handleAddProduct"
+                    prefWidth="210"
+                    style="-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-weight: bold;
+                       -fx-padding: 10; -fx-background-radius: 5; -fx-cursor: hand;"/>
+
+        </VBox>
+    </left>
+    <!-- 3. SIDEBAR PHẢI -->
+    <right>
+        <VBox spacing="25" prefWidth="300" style="-fx-padding: 25;">
+            <VBox spacing="15" alignment="CENTER" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);">
+                <Label text="💰 NẠP TIỀN" style="-fx-font-weight: bold; -fx-font-size: 18; -fx-text-fill: #2c3e50;"/>
+                <Button text="Nạp qua VNPay" onAction="#handleDeposit" style="-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 5; -fx-cursor: hand;" prefWidth="250"/>
+            </VBox>
+
+            <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);" VBox.vgrow="ALWAYS">
+                <Label text="🕒 LỊCH SỬ THEO DÕI" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #2c3e50;"/>
+                <Separator/>
+                <Label text="• Tranh Đông Hồ" style="-fx-text-fill: #e67e22; -fx-font-weight: bold;"/>
+                <Label text="  Trạng thái: Bị vượt giá" style="-fx-text-fill: #7f8c8d; -fx-font-size: 12;"/>
+                <Label text="• Honda Civic 2024" style="-fx-text-fill: #27ae60; -fx-font-weight: bold;">
+                    <padding><Insets top="10"/></padding>
+                </Label>
+                <Label text="  Trạng thái: Đang giữ top 1" style="-fx-text-fill: #7f8c8d; -fx-font-size: 12;"/>
+            </VBox>
+        </VBox>
+    </right>
+
+    <!-- 4. KHU VỰC TRUNG TÂM -->
+    <center>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #f4f7f6; -fx-border-color: transparent;">
+            <padding><Insets top="25" right="10" bottom="25" left="25"/></padding>
+            <FlowPane hgap="25" vgap="25">
+
+                <!-- THẺ SẢN PHẨM 1 -->
+                <VBox spacing="10" prefWidth="260" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 3);">
+                    <Rectangle width="230" height="150" fill="#e0e0e0" arcWidth="10" arcHeight="10"/>
+                    <Label text="iPhone 15 Pro Max 256GB" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #2c3e50;" wrapText="true"/>
+                    <Label text="Giá hiện tại: 35,000,000VND" style="-fx-text-fill: #e67e22; -fx-font-weight: bold; -fx-font-size: 15;"/>
+                    <Label text="Trạng thái: Đang diễn ra" style="-fx-text-fill: #27ae60; -fx-font-style: italic; -fx-font-size: 12;"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <!-- Nút tham gia có gắn sự kiện handleJoinAuction -->
+                    <Button text="THAM GIA NGAY" onAction="#handleJoinAuction" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 5; -fx-cursor: hand;" prefWidth="230"/>
+                </VBox>
+
+                <!-- THẺ SẢN PHẨM 2 -->
+                <VBox spacing="10" prefWidth="260" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 3);">
+                    <Rectangle width="230" height="150" fill="#e0e0e0" arcWidth="10" arcHeight="10"/>
+                    <Label text="Bức Họa Đêm Đầy Sao" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #2c3e50;" wrapText="true"/>
+                    <Label text="Giá hiện tại: 100,000,000VND" style="-fx-text-fill: #e67e22; -fx-font-weight: bold; -fx-font-size: 15;"/>
+                    <Label text="Trạng thái: Sắp đóng (Còn 5p)" style="-fx-text-fill: #e74c3c; -fx-font-style: italic; -fx-font-size: 12;"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <!-- Nút tham gia có gắn sự kiện handleJoinAuction -->
+                    <Button text="THAM GIA NGAY" onAction="#handleJoinAuction" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 5; -fx-cursor: hand;" prefWidth="230"/>
+                </VBox>
+
+            </FlowPane>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

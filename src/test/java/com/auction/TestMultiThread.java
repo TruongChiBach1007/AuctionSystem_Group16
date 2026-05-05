@@ -1,8 +1,8 @@
 package com.auction;
 // test xem nhiều người cùng nhảy vào đặt giá một lúc hay không
-import com.auction.model.core.Auction;
-import com.auction.model.core.Bid;
-import com.auction.model.users.Bidder;
+import com.auction.shared.model.core.Auction;
+import com.auction.shared.model.core.Bid;
+import com.auction.shared.model.users.Bidder;
 
 import java.util.Date;
 
