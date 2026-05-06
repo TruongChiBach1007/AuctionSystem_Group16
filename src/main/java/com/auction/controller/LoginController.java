@@ -1,5 +1,7 @@
 package com.auction.controller;
 
+import com.auction.security.AuthService;
+import com.auction.model.users.Admin;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -10,10 +12,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 public class LoginController {
 
@@ -21,14 +20,9 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private Label messageLabel;
 
-    private static final String DEFAULT_SERVER_IP = "127.0.0.1";
-    private static final int DEFAULT_SERVER_PORT = 1234;
-
-    private final List<String> validGuests = Arrays.asList("minh", "bach", "dung", "duy");
-
     @FXML
     public void handleConnect(ActionEvent event) {
-        String username = nameField.getText().trim().toLowerCase();
+        String username = nameField.getText().trim();
         String password = passwordField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
@@ -36,17 +30,20 @@ public class LoginController {
             return;
         }
 
-        // ADMIN
-        if (username.equals("admin") && password.equals("1234")) {
-            System.out.println("Role: ADMIN đang đăng nhập...");
-            chuyenManHinhAdmin(event, username);
-        }
-        // GUEST/BIDDER
-        else if (validGuests.contains(username) && password.equals("1234")) {
-            System.out.println("Role: GUEST - User: " + username);
-            chuyenManHinhBidder(event, username);
-        }
-        else {
+        // Gọi AuthService để kiểm tra đăng nhập từ DatabaseConnection
+        boolean isSuccess = AuthService.getInstance().login(username, password);
+
+        if (isSuccess) {
+            System.out.println("Đăng nhập thành công!");
+            var currentUser = AuthService.getInstance().getCurrentUser();
+
+            // Kiểm tra role để chuyển màn hình tương ứng
+            if (currentUser instanceof Admin) {
+                chuyenManHinhAdmin(event, username);
+            } else {
+                chuyenManHinhBidder(event, username);
+            }
+        } else {
             hienThiLoi("Sai tài khoản hoặc mật khẩu. Vui lòng thử lại!");
         }
     }
@@ -59,36 +56,35 @@ public class LoginController {
             AdminDashboardController controller = loader.getController();
             controller.setAdminName(username);
 
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Admin Dashboard - Quản lý hệ thống");
-            stage.centerOnScreen();
-            stage.show();
-
+            thayDoiScene(event, root, "Admin Dashboard - Quản lý hệ thống");
         } catch (IOException e) {
-            hienThiLoi("Lỗi hệ thống: Không tải được giao diện Admin!");
+            hienThiLoi("Lỗi: Không tải được giao diện Admin!");
             e.printStackTrace();
         }
     }
 
     private void chuyenManHinhBidder(ActionEvent event, String username) {
         try {
+            // Thay dấu chấm bằng dấu gạch chéo /
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/bidder-dashboard.fxml"));
             Parent root = loader.load();
 
             BidderDashboardController controller = loader.getController();
             controller.setLblUsername(username);
 
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Trang Chủ - Chào " + username.toUpperCase());
-            stage.centerOnScreen();
-            stage.show();
-
+            thayDoiScene(event, root, "Trang Chủ - Chào " + username.toUpperCase());
         } catch (IOException e) {
-            hienThiLoi("Lỗi hệ thống: Không tải được giao diện!");
+            hienThiLoi("Lỗi: Không tải được giao diện Bidder!");
             e.printStackTrace();
         }
+    }
+
+    private void thayDoiScene(ActionEvent event, Parent root, String title) {
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.setScene(new Scene(root, 1200, 700));
+        stage.setTitle(title);
+        stage.centerOnScreen();
+        stage.show();
     }
 
     private void hienThiLoi(String thongBao) {
