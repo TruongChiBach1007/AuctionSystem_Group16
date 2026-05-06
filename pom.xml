@@ -9,26 +9,30 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <!-- Cấu hình để chạy với Java 25 -->
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>17.0.2</javafx.version>
+        <!-- Sử dụng bản JavaFX 21 LTS để đảm bảo tính ổn định nhất trên Mac -->
+        <javafx.version>21.0.2</javafx.version>
     </properties>
 
     <dependencies>
-        <!-- JavaFX -->
+        <!-- JavaFX Controls -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+
+        <!-- JavaFX FXML - Cực kỳ quan trọng để load giao diện -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- JUnit -->
+        <!-- JUnit cho Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -39,32 +43,33 @@
 
     <build>
         <plugins>
-            <!-- Compiler -->
+            <!-- Compiler Plugin hỗ trợ JDK đời cao -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>25</source>
+                    <target>25</target>
                 </configuration>
             </plugin>
 
-            <!-- JavaFX Plugin - chạy thẳng AuctionApp không cần Launcher -->
+            <!-- JavaFX Maven Plugin -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
+                    <!-- Đường dẫn đến class chính của bạn -->
                     <mainClass>com.auction.AuctionApp</mainClass>
                 </configuration>
             </plugin>
 
-            <!-- JAR Plugin -->
+            <!-- Maven JAR Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.3.0</version>
                 <configuration>
                     <archive>
                         <manifest>
