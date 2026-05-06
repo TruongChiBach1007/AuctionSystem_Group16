@@ -1,4 +1,5 @@
-package com.auction.model;
+package com.auction.model.users;
+
 public class Bidder extends User {
     private double balance;
 

@@ -1,5 +1,8 @@
-package com.auction.model;
-import com.auction.autobid.AutoBid;
+package com.auction;
+import com.auction.service.AutoBid;
+import com.auction.model.core.Auction;
+import com.auction.model.core.Bid;
+import com.auction.model.users.Bidder;
 
 public class TestAutoBid {
     public static void main(String[] args) {

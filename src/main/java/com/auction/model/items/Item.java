@@ -1,6 +1,5 @@
-package com.auction.model;
+package com.auction.model.items;
 
-import java.io.DataOutputStream;
 import java.io.Serializable;
 
 public abstract class Item implements Serializable {

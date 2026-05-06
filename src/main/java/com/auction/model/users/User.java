@@ -1,4 +1,4 @@
-package com.auction.model;
+package com.auction.model.users;
 
 //Lớp trừu tượng đại diện cho người dùng trong hệ thống
 //  Áp dụng tính trừu tượng (Abstraction) để định nghĩa khung cơ bản

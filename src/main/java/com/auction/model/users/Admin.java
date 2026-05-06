@@ -1,4 +1,4 @@
-package com.auction.model;
+package com.auction.model.users;
 
 /**
  * Lớp Admin đại diện cho quản trị viên trong hệ thống.
