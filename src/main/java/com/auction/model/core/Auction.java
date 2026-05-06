@@ -79,6 +79,9 @@ public class Auction {
             highestBidder = bidder;
             System.out.println("New bid :" + currentPrice + "by" + highestBidder.getFullName());
 
+            // --- KÍCH HOẠT OBSERVER CHO NGƯỜI ĐẶT ---
+            notifyUpdate();
+
             processAutoBids();
             return true;
         }
