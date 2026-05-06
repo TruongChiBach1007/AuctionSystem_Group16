@@ -8,6 +8,7 @@ public class Admin extends User {
     // Admin có thể có thêm các thuộc tính đặc thù, ví dụ như cấp độ quyền hạn
     private int accessLevel;
 
+
     public Admin(int id, String username, String password, String fullName, String email, int accessLevel) {
         // Gọi constructor của lớp cha User
         super(id, username, password, fullName, email);
