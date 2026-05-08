@@ -45,6 +45,8 @@ public class LoginController {
             }
         } else {
             hienThiLoi("Sai tài khoản hoặc mật khẩu. Vui lòng thử lại!");
+            passwordField.clear();       // Xóa trắng ô mật khẩu cũ
+            passwordField.requestFocus(); // Tự động đưa con trỏ chuột vào ô mật khẩu để gõ lại luôn
         }
     }
 
