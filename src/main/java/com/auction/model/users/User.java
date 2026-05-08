@@ -3,11 +3,7 @@ package com.auction.model.users;
 //Lớp trừu tượng đại diện cho người dùng trong hệ thống
 //  Áp dụng tính trừu tượng (Abstraction) để định nghĩa khung cơ bản
 
-import java.io.Serializable; // Cần import cái này
-
-// Thêm Serializable vào đây
-public abstract class User implements Serializable {
-    private static final long serialVersionUID = 1L;
+public abstract class User {
     private int id;
     private String username;
     private String password; // Nên được băm (hash) trước khi lưu

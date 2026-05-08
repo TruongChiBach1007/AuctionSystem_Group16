@@ -1,9 +1,6 @@
 package com.auction.model.items;
 
-import java.io.Serializable;
-
-public class Vehicle extends Item implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class Vehicle extends Item {
     private double engineCapacity;
 
     public Vehicle(String id, String name, String description, double startingPrice, double currentPrice) {

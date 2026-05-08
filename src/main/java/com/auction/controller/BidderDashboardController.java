@@ -26,7 +26,7 @@ public class BidderDashboardController {
     private long balance = 50000;
 
     public void setLblUsername(String username) {
-        lblUsername.setText("Tên TK: " + username.toUpperCase());
+        lblUsername.setText("Tên TK: " + username);
     }
 
     @FXML
@@ -202,12 +202,16 @@ public class BidderDashboardController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/auction-room.fxml"));
             Parent root = loader.load();
+
+            // Truyền tên người dùng sang phòng đấu giá
+            AuctionRoomController controller = loader.getController();
+            controller.setCurrentUser(lblUsername.getText().replace("Tên TK: ", ""));
+
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1000, 700));
             stage.setTitle("Phòng Đấu Giá Trực Tiếp - Live!");
             stage.centerOnScreen();
         } catch (IOException e) {
-            System.err.println("Lỗi: Không tìm thấy file giao diện phòng đấu giá!");
             e.printStackTrace();
         }
     }

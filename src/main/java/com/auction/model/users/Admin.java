@@ -5,7 +5,6 @@ package com.auction.model.users;
  * Kế thừa từ lớp trừu tượng User.
  */
 public class Admin extends User {
-    private static final long serialVersionUID = 1L;
     // Admin có thể có thêm các thuộc tính đặc thù, ví dụ như cấp độ quyền hạn
     private int accessLevel;
 
