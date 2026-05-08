@@ -43,7 +43,7 @@
             <!-- Ô nhập Mật khẩu (Viền xanh lá) -->
             <VBox spacing="8">
                 <Label text="Vui lòng nhập mật khẩu" style="-fx-text-fill: #95a5a6; -fx-font-size: 12;"/>
-                <PasswordField fx:id="passwordField" onAction="#handleConnect" promptText="Password ..." style="-fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #1e5c9a; -fx-border-radius: 5; -fx-border-width: 1;"/>
+                <PasswordField fx:id="passwordField" promptText="Password ..." style="-fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #1e5c9a; -fx-border-radius: 5; -fx-border-width: 1;"/>
             </VBox>
 
             <!-- Nơi hiện thông báo lỗi -->

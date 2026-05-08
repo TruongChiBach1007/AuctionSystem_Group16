@@ -1,6 +1,9 @@
 package com.auction.model.items;
 
-public class Electronics extends Item {
+import java.io.Serializable;
+
+public class Electronics extends Item implements Serializable {
+    private static final long serialVersionUID = 1L;
     private int warrantyMonths;
 
     // Sửa dòng này: Thêm tham số thứ 5 là currentPrice vào constructor

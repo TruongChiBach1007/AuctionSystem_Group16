@@ -1,6 +1,9 @@
 package com.auction.model.items;
 
-public class Art extends Item {
+import java.io.Serializable;
+
+public class Art extends Item implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String artist;
 
     public Art(String id, String name, String description, double startingPrice, double currentPrice) {
