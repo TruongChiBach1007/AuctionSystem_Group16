@@ -1,10 +1,11 @@
 package com.auction.model.core;
-
+import java.io.Serializable;
 import com.auction.model.users.Bidder;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-public class Bid {
+public class Bid implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Bidder bidder;
     private Double amount;
     private LocalTime time;

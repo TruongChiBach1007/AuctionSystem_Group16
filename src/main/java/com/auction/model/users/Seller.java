@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Seller extends User {
+    private static final long serialVersionUID = 1L;
     // Thuộc tính riêng: Danh sách các tên sản phẩm mà người bán này đang đăng
     private List<String> listedItems;
 
