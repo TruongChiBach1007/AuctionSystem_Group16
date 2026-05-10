@@ -1,16 +1,14 @@
 package com.auction.model.core;
 
-import com.auction.service.AutoBid;
 import com.auction.model.users.Bidder;
 import com.auction.pattern.AuctionObserver;
-import java.io.Serializable;
+import com.auction.service.AutoBid;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 
-public class Auction implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class Auction {
     private double currentPrice;
     private Bidder highestBidder;
     private boolean closed = false; // trạng thái phiên đang mở

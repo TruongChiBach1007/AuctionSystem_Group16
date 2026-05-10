@@ -1,7 +1,6 @@
 package com.auction.model.users;
 
 public class Bidder extends User {
-    private static final long serialVersionUID = 1L;
     private double balance;
 
 
@@ -9,10 +8,10 @@ public class Bidder extends User {
         super(id,username,password,fullname,email);
         this.balance=balance;
     }
-    public Double getBalance(){
+    public double getBalance(){
         return balance;
     }
-    public void setBalance(){
+    public void setBalance(double balance){
         this.balance=balance;
     }
     public void displayRoleInfo(){
