@@ -1,7 +1,10 @@
 package com.auction.controller;
 
-import com.auction.security.AuthService;
 import com.auction.model.users.Admin;
+import com.auction.model.users.Bidder;
+import com.auction.model.users.Seller;
+import com.auction.model.users.User;
+import com.auction.security.AuthService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -12,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+
 import java.io.IOException;
 
 public class LoginController {
@@ -30,63 +34,84 @@ public class LoginController {
             return;
         }
 
-        // Gọi AuthService để kiểm tra đăng nhập từ DatabaseConnection
-        boolean isSuccess = AuthService.getInstance().login(username, password);
+        // Gọi AuthService thật thay vì if/else hardcode
+        AuthService auth = AuthService.getInstance();
+        boolean success = auth.login(username, password);
 
-        if (isSuccess) {
-            System.out.println("Đăng nhập thành công!");
-            var currentUser = AuthService.getInstance().getCurrentUser();
-
-            // Kiểm tra role để chuyển màn hình tương ứng
-            if (currentUser instanceof Admin) {
-                chuyenManHinhAdmin(event, username);
-            } else {
-                chuyenManHinhBidder(event, username);
-            }
-        } else {
+        if (!success) {
             hienThiLoi("Sai tài khoản hoặc mật khẩu. Vui lòng thử lại!");
-            passwordField.clear();       // Xóa trắng ô mật khẩu cũ
-            passwordField.requestFocus(); // Tự động đưa con trỏ chuột vào ô mật khẩu để gõ lại luôn
+            return;
+        }
+
+        User currentUser = auth.getCurrentUser();
+
+        // Phân quyền theo role
+        if (currentUser instanceof Admin) {
+            chuyenManHinhAdmin(event, currentUser);
+        } else if (currentUser instanceof Seller) {
+            chuyenManHinhSeller(event, currentUser);
+        } else  {
+            chuyenManHinhBidder(event, currentUser);
         }
     }
 
-    private void chuyenManHinhAdmin(ActionEvent event, String username) {
+    private void chuyenManHinhAdmin(ActionEvent event, User user) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/admin-dashboard.fxml"));
             Parent root = loader.load();
 
             AdminDashboardController controller = loader.getController();
-            controller.setAdminName(username);
+            controller.setAdminName(user.getFullName());
 
-            thayDoiScene(event, root, "Admin Dashboard - Quản lý hệ thống");
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root, 1200, 700));
+            stage.setTitle("Admin Dashboard - Quản lý hệ thống");
+            stage.centerOnScreen();
+            stage.show();
+
         } catch (IOException e) {
-            hienThiLoi("Lỗi: Không tải được giao diện Admin!");
+            hienThiLoi("Lỗi hệ thống: Không tải được giao diện Admin!");
             e.printStackTrace();
         }
     }
 
-    private void chuyenManHinhBidder(ActionEvent event, String username) {
+    private void chuyenManHinhBidder(ActionEvent event, User user) {
         try {
-            // Thay dấu chấm bằng dấu gạch chéo /
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/bidder-dashboard.fxml"));
             Parent root = loader.load();
 
             BidderDashboardController controller = loader.getController();
-            controller.setLblUsername(username);
+            controller.setLblUsername(user.getFullName());
 
-            thayDoiScene(event, root, "Trang Chủ - Chào " + username.toUpperCase());
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root, 1200, 700));
+            stage.setTitle("Trang Chủ - Chào " + user.getFullName().toUpperCase());
+            stage.centerOnScreen();
+            stage.show();
+
         } catch (IOException e) {
-            hienThiLoi("Lỗi: Không tải được giao diện Bidder!");
+            hienThiLoi("Lỗi hệ thống: Không tải được giao diện!");
             e.printStackTrace();
         }
     }
+    private void chuyenManHinhSeller(ActionEvent event, User user) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/seller-dashboard.fxml"));
+            Parent root = loader.load();
 
-    private void thayDoiScene(ActionEvent event, Parent root, String title) {
-        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        stage.setScene(new Scene(root, 1200, 700));
-        stage.setTitle(title);
-        stage.centerOnScreen();
-        stage.show();
+            SellerDashboardController controller = loader.getController();
+            controller.setLblUsername(user.getFullName());
+
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root, 1200, 700));
+            stage.setTitle("Trang Chủ - Chào " + user.getFullName().toUpperCase());
+            stage.centerOnScreen();
+            stage.show();
+
+        } catch (IOException e) {
+            hienThiLoi("Lỗi hệ thống: Không tải được giao diện!");
+            e.printStackTrace();
+        }
     }
 
     private void hienThiLoi(String thongBao) {
