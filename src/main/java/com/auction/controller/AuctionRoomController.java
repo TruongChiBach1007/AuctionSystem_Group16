@@ -50,25 +50,32 @@ public class AuctionRoomController {
     private double currentHighestBid = 10000; // Giá khởi điểm
     private int totalSeconds = 30;
     private Timeline timeline;
+    private Bidder currentUser;
+
+    public void setCurrentUser(String username) {
+        // Khởi tạo user với tên từ màn hình Login/Dashboard
+        this.currentUser = new Bidder(1, username, "pass", username, username + "@gmail.com", 500000.0);
+        if (statusLabel != null) {
+            statusLabel.setText("Chào mừng " + username + "! Sẵn sàng đấu giá.");
+        }
+    }
 
 
     // Robot của autobid
     private boolean isAutoBidActive = false;
     private double maxAutoBidLimit = 0;
-    private Bidder currentUser;
+
 
     // Hàm này chạy ngay khi màn hình vừa bật lên
     @FXML
     public void initialize() {
-        currentUser = new Bidder(1, "bach123", "pass", "Trương Chí Bách", "bach@gmail.com", 500000);
-        // Cài đặt biểu đồ
-        //bidderName và amount trong hàm class Bid
-
+        //tableview
         nguoiDatCol.setCellValueFactory(new PropertyValueFactory<>("bidderName"));
         giaCol.setCellValueFactory(new PropertyValueFactory<>("amount"));
         thoiGianCol.setCellValueFactory(new PropertyValueFactory<>("bidTime"));
         auctionTable.setItems(bidHistory);
 
+        //linechart
         series = new XYChart.Series<>();
         series.setName("Biến động giá iPhone 15 Pro Max");
         priceChart.getData().add(series);
@@ -114,7 +121,7 @@ public class AuctionRoomController {
     }
     // [MỚI] Hàm bổ trợ để Robot và Người dùng dùng chung logic đặt giá
     private void executeBidLogic(double newBid, String bidderName) {
-        if (bidderName.equals("Bạn")) {
+        if (bidderName.equals("Bạn") && currentUser!=null) {
             currentUser.setBalance(currentUser.getBalance() - newBid);
         }
         currentHighestBid = newBid;
@@ -132,7 +139,7 @@ public class AuctionRoomController {
             statusLabel.setText("⚡ Hệ thống tự động gia hạn 15s!");
             updateClockDisplay();
         } else {
-            statusLabel.setText("✅ " + bidderName + " đặt giá thành công: VND " + newBid);
+            statusLabel.setText("✅ " + bidderName + " đặt giá thành công: " + newBid+"VND");
         }
         statusLabel.setStyle("-fx-text-fill: #27ae60;");
 
@@ -146,12 +153,8 @@ public class AuctionRoomController {
         if (autoBidCheckBox.isSelected()) {
             try {
                 double step = stepBidField.getText().isEmpty() ? 500.0 : Double.parseDouble(stepBidField.getText());
-                double limit;
-                if (maxBidField.getText().isEmpty()) {
-                    limit = currentUser.getBalance();
-                } else {
-                    limit = Math.min(Double.parseDouble(maxBidField.getText()), currentUser.getBalance());
-                }
+                double limit = maxBidField.getText().isEmpty() ? currentUser.getBalance() :
+                        Math.min(Double.parseDouble(maxBidField.getText()), currentUser.getBalance());
 
                 if (latestPrice < limit) {
                     double myNewBid = latestPrice + step;
@@ -210,6 +213,7 @@ public class AuctionRoomController {
             // Nếu vượt qua 2 bước chặn trên -> Thực hiện đặt giá
             executeBidLogic(newBid, "Bạn");
             bidInput.clear();
+            bidInput.requestFocus();
 
         } catch (NumberFormatException e) {
             statusLabel.setText("❌ Vui lòng nhập số hợp lệ!");
@@ -217,15 +221,13 @@ public class AuctionRoomController {
         }
     }
 
-
-
     // --- Xử lý nút QUAY LẠI ---
     @FXML
     public void handleBackToDashboard(ActionEvent event) {
+        if (timeline != null) timeline.stop();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/bidder-dashboard.fxml"));
             Parent root = loader.load();
-
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
             stage.setTitle("Trang Chủ - Sàn Đấu Giá");

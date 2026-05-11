@@ -2,12 +2,10 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.chart.*?>
-
 <?import javafx.geometry.Insets?>
 
 
 <BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.controller.AuctionRoomController">
-
     <top>
         <HBox alignment="CENTER_LEFT" spacing="0" style="-fx-background-color: #1a1a1a; -fx-padding: 10 25;">
             <Button onAction="#handleBackToDashboard" style="-fx-background-color: #34495e; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="⬅ Quay lại" />
@@ -29,7 +27,7 @@
         <VBox spacing="15" style="-fx-padding: 20; -fx-background-color: #ffffff;" prefWidth="360">
             <VBox spacing="10">
                 <Label text="ĐẶT GIÁ CỦA BẠN" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
-                <TextField fx:id="bidInput" promptText="Nhập số tiền..." style="-fx-padding: 10;"/>
+                <TextField fx:id="bidInput" onAction="#handlePlaceBid" promptText="Nhập số tiền..." style="-fx-padding: 10;"/>
                 <Button onAction="#handlePlaceBid" maxWidth="Infinity" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="ĐẶT GIÁ NGAY" />
                 <Label fx:id="statusLabel" text="Hệ thống sẵn sàng..." wrapText="true" style="-fx-font-size: 12;"/>
             </VBox>
