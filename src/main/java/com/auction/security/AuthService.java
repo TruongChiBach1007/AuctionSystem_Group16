@@ -1,13 +1,18 @@
 package com.auction.security;
 
+import com.auction.dao.IUserDAO;
+import com.auction.dao.UserDAOImpl;
 import com.auction.model.users.User;
-import com.auction.utils.DatabaseConnection; // Quan trọng: phải có dòng này
 
 public class AuthService {
     private static AuthService instance;
     private User currentUser;
+    private IUserDAO userDAO; // Khai báo ở đây
 
-    private AuthService() {}
+    private AuthService() {
+        // Khởi tạo trạm trung chuyển dữ liệu
+        this.userDAO = new UserDAOImpl();
+    }
 
     public static AuthService getInstance() {
         if (instance == null) {
@@ -16,22 +21,14 @@ public class AuthService {
         return instance;
     }
 
-    // Chỉ để MỘT hàm login duy nhất ở đây
     public boolean login(String username, String password) {
-        // 1. Lấy thực thể Database duy nhất
-        DatabaseConnection db = DatabaseConnection.getInstance();
+        // NHỜ DAO TÌM GIÚP USER
+        User user = userDAO.findByUsername(username);
 
-        // 2. Duyệt danh sách người dùng để so khớp
-        for (User user : db.getUserTable()) {
-            if (user.getUsername().equals(username) && user.getPassword().equals(password)) {
-                this.currentUser = user;
-                System.out.println("Đăng nhập thành công! Chào mừng: " + user.getFullName());
-                return true;
-            }
+        if (user != null && user.getPassword().equals(password)) {
+            this.currentUser = user;
+            return true;
         }
-
-        // 3. Nếu không tìm thấy
-        System.out.println("Lỗi: Tên đăng nhập hoặc mật khẩu không chính xác!");
         return false;
     }
 
