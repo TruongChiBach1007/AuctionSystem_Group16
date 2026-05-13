@@ -3,7 +3,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane prefWidth="1100" prefHeight="700" style="-fx-background-color: #f4f7f6;"
+<BorderPane stylesheets="@css/styles.css" prefWidth="1100" prefHeight="700" style="-fx-background-color: #f4f7f6;"
             xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.controller.SellerDashboardController">
 

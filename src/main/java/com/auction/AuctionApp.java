@@ -15,7 +15,7 @@ public class AuctionApp extends Application {
         FXMLLoader fxmlLoader = new FXMLLoader(AuctionApp.class.getResource("/com/auction/login-view.fxml"));
 
         // Cài đặt kích thước cửa sổ (Rộng 600, Cao 500)
-        Scene scene = new Scene(fxmlLoader.load(), 600, 500);
+        Scene scene = new Scene(fxmlLoader.load(), 800, 600);
 
         stage.setTitle("Hệ Thống Đấu Giá Realtime - Client");
         stage.setScene(scene);
