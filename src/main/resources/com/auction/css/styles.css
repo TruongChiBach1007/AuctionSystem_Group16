@@ -324,3 +324,52 @@
     -fx-text-fill: #1e40af; /* Màu xanh đậm của Logo */
     -fx-font-size: 13px;
 }
+/* 1. Bo góc và đổi màu nền cho thanh tiêu đề */
+.table-view .column-header-background {
+    -fx-background-color: #007bff;
+    -fx-background-radius: 15 15 0 0;
+    -fx-padding: 0;
+}
+
+/* 2. Căn giữa nhãn tiêu đề và XÓA BỎ khoảng trống của mũi tên sort */
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-alignment: CENTER;       /* Căn giữa nội dung */
+    -fx-text-alignment: CENTER;  /* Căn giữa chữ */
+    -fx-max-width: infinity;     /* Ép nhãn chiếm hết chiều ngang */
+    -fx-padding: 0;              /* Xóa mọi padding gây lệch */
+}
+
+/* 3. Đưa container chứa nhãn vào giữa và triệt tiêu diện tích mũi tên */
+.table-view .column-header .column-header-label {
+    -fx-alignment: CENTER;
+    -fx-padding: 0 0 0 0;        /* Đảm bảo không có khoảng trống bên phải */
+}
+
+/* 4. ẨN HOÀN TOÀN mũi tên (Sort Arrow) để không gây lệch */
+.table-view .column-header .arrow,
+.table-view .column-header .sort-order-dot {
+    -fx-padding: 0;
+    -fx-shape: "";               /* Xóa hình dáng mũi tên */
+    -fx-background-color: transparent;
+    -fx-max-width: 0;
+    -fx-max-height: 0;
+}
+
+/* 5. Chỉnh màu cho từng ô tiêu đề */
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 45px;
+    -fx-border-color: transparent;
+}
+
+/* 6. Bo góc tổng thể cho bảng */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1px;
+}

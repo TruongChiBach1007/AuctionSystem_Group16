@@ -45,6 +45,10 @@ public class BidderDashboardController {
             } else {
                 lblUsername.setText(username);
             }
+            if (lblWelcome != null) {
+                // Giữ lại câu chào và ghép thêm tên của em vào
+                lblWelcome.setText("Chào mừng " + username + " trở lại! 👋");
+            }
         }
     }
     @FXML
