@@ -228,14 +228,25 @@ public class AuctionRoomController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/bidder-dashboard.fxml"));
             Parent root = loader.load();
+
+            // 💡 BƯỚC QUAN TRỌNG ĐÂY MINH ƠI:
+            // Lấy controller của Dashboard vừa mới load lên
+            BidderDashboardController dashboardController = loader.getController();
+
+            // Truyền lại cái tên từ AuctionRoom quay ngược về Dashboard
+            // Dùng chính cái currentUser mà em đã có trong AuctionRoom
+            if (currentUser != null) {
+                dashboardController.setLblUsername(currentUser.getUsername());
+            }
+
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
             stage.setTitle("Trang Chủ - Sàn Đấu Giá");
             stage.centerOnScreen();
 
         } catch (IOException e) {
-            System.err.println("Lỗi: Không tìm thấy file guest-dashboard.fxml");
             e.printStackTrace();
         }
     }
+
 }

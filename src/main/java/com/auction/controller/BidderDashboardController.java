@@ -38,12 +38,13 @@ public class BidderDashboardController {
     private final List<ProductCard> allProducts = new ArrayList<>();
 
     public void setLblUsername(String username) {
-        // Giữ nguyên dòng cũ nếu em vẫn muốn hiện Tên TK ở đâu đó
-        lblUsername.setText("Tên TK: " + username);
-
-        // Cập nhật dòng chào mừng linh hoạt theo username
-        if (lblWelcome != null) {
-            lblWelcome.setText("Chào mừng trở lại, " + username + "! 👋");
+        if (lblUsername != null) {
+            // Kiểm tra nếu tên chưa có chữ "Tên TK: " thì mới thêm vào
+            if (!username.startsWith("Tên tài khoản: ")) {
+                lblUsername.setText("Tên tài khoản: " + username);
+            } else {
+                lblUsername.setText(username);
+            }
         }
     }
     @FXML
@@ -224,7 +225,7 @@ public class BidderDashboardController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/auction-room.fxml"));
             Parent root = loader.load();
             AuctionRoomController controller = loader.getController();
-            controller.setCurrentUser(lblUsername.getText().replace("Tên TK: ", ""));
+            controller.setCurrentUser(lblUsername.getText().replace("Tên tài khoản: ", ""));
             Stage stage = (Stage) lblUsername.getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
             stage.setTitle("Phòng Đấu Giá Trực Tiếp - Live!");
