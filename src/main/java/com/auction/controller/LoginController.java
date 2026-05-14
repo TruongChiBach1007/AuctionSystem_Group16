@@ -118,4 +118,16 @@ public class LoginController {
         messageLabel.setText(thongBao);
         messageLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
     }
+    @FXML
+    public void handleRegister(ActionEvent event) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/register.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root, stage.getWidth(), stage.getHeight()));
+            stage.centerOnScreen();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
