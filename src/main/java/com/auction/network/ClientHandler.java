@@ -26,16 +26,24 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             while (true) {
+                // Server ngồi đợi Client gửi đối tượng sang
                 Object obj = in.readObject();
+
                 if (obj instanceof Bid) {
-                    Bid newBid = (Bid) obj;
-                    processBid(newBid);
+                    processBid((Bid) obj); // Gửi sang hàm xử lý đấu giá
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("Client disconnected: " + socket.getInetAddress());
+            System.out.println("Một người chơi đã thoát.");
         } finally {
-            closeConnection();
+            try {
+                if (socket != null) socket.close();
+                // XÓA MÌNH KHỎI DANH SÁCH ĐỂ SERVER KHÔNG GỬI NHẦM NỮA
+                AuctionServer.removeClient(this);
+                System.out.println(">>> Đã dọn dẹp 1 kết nối thừa.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -44,18 +52,14 @@ public class ClientHandler implements Runnable {
             try {
                 auction.placeBid(bid);
                 System.out.println("New bid accepted: " + bid.getAmount());
+
+                // DÒNG "PHÉP THUẬT" Ở ĐÂY:
+                // Bảo Server gửi cái Bid này tới TẤT CẢ mọi người đang kết nối
+                AuctionServer.broadcast(bid);
+
             } catch (Exception e) {
                 sendToClient("Error: " + e.getMessage());
             }
-        }
-    }
-
-    public void sendToClient(Object message) {
-        try {
-            out.writeObject(message);
-            out.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -66,6 +70,16 @@ public class ClientHandler implements Runnable {
             if (socket != null) socket.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+
+    public void sendToClient(Object message) {
+        try {
+            out.writeObject(message);
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("Lỗi khi gửi dữ liệu tới client: " + e.getMessage());
         }
     }
 }

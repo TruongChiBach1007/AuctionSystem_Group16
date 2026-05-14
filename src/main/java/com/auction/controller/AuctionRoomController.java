@@ -2,9 +2,11 @@ package com.auction.controller;
 
 import com.auction.model.core.Bid;
 import com.auction.model.users.Bidder;
+import com.auction.network.GUIClientManager;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.input.MouseEvent;
@@ -25,6 +27,7 @@ import java.io.IOException;
 
 public class AuctionRoomController {
 // khai báo bảng
+    private static GUIClientManager networkManager;
     @FXML private TableView<Bid> auctionTable;
     @FXML private TableColumn<Bid, String> nguoiDatCol;
     @FXML private TableColumn<Bid, Double> giaCol;
@@ -86,6 +89,15 @@ public class AuctionRoomController {
 
         //Hàm đê ngược
         startCountdown();
+
+
+        if (networkManager == null) {
+            networkManager = new GUIClientManager(this);
+            networkManager.startConnection();
+        } else {
+            // Nếu đã có rồi, chỉ cần cập nhật cái "Controller" mới cho nó thôi
+            networkManager.setController(this);
+        }
     }
     private void startCountdown() {
         timeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -211,13 +223,19 @@ public class AuctionRoomController {
             }
 
             // Nếu vượt qua 2 bước chặn trên -> Thực hiện đặt giá
-            executeBidLogic(newBid, currentUser.getUsername());
+            //executeBidLogic(newBid, currentUser.getUsername());
+            networkManager.sendBid(new Bid(currentUser, newBid));
+
             bidInput.clear();
             bidInput.requestFocus();
 
         } catch (NumberFormatException e) {
             statusLabel.setText("❌ Vui lòng nhập số hợp lệ!");
             statusLabel.setStyle("-fx-text-fill: #e74c3c;");
+        }catch (java.io.IOException e) { // THÊM KHỐI NÀY VÀO
+            statusLabel.setText("X Lỗi kết nối Server!");
+            statusLabel.setStyle("-fx-text-fill: #e74c3c;");
+            e.printStackTrace();
         }
     }
 
@@ -249,4 +267,10 @@ public class AuctionRoomController {
         }
     }
 
+    public void updateUIWithNewBid(Bid bid) {
+        Platform.runLater(() -> {
+            bidHistory.add(0, bid); // Cập nhật bảng
+            series.getData().add(new XYChart.Data<>(bidCount++, bid.getAmount())); // Cập nhật biểu đồ
+        });
+    }
 }
