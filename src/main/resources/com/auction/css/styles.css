@@ -1,0 +1,375 @@
+/* =======================================================
+   TỔNG THỂ ỨNG DỤNG (NỀN & FONT CHỮ)
+   ======================================================= */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-background-color: #f4f7f6; /* Xám nhạt cực sang, làm nổi khối trắng */
+    -fx-font-size: 14px;
+}
+
+/* =======================================================
+   KHỐI GIAO DIỆN CHÍNH (THẺ CARD CHO BẢNG VÀ BIỂU ĐỒ)
+   ======================================================= */
+/* Em gán class "card" này cho các VBox chứa biểu đồ hoặc bảng */
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4); /* Đổ bóng mờ cực mượt */
+}
+
+/* =======================================================
+   CHỮ & TIÊU ĐỀ (LABELS)
+   ======================================================= */
+.title-label {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50; /* Đen xanh trầm */
+}
+
+.subtitle-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #7f8c8d; /* Xám nhạt cho chữ phụ */
+}
+
+/* =======================================================
+   Ô NHẬP LIỆU (TEXTFIELD & PASSWORDFIELD)
+   ======================================================= */
+.text-field, .password-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 12px;
+    -fx-text-fill: #2f3640;
+    -fx-prompt-text-fill: #b2bec3;
+}
+
+/* Hiệu ứng khi click chuột vào ô nhập (phát sáng xanh) */
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2px;
+    -fx-background-color: #f0f8ff; /* Nền xanh cực nhạt khi gõ */
+}
+
+/* =======================================================
+   NÚT BẤM CƠ BẢN (BUTTON)
+   ======================================================= */
+.button {
+    -fx-background-color: #3498db; /* Xanh dương mặc định */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 10px 20px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.4), 8, 0, 0, 3);
+}
+
+.button:hover {
+    -fx-background-color: #2980b9;
+    -fx-effect: dropshadow(three-pass-box, rgba(41, 128, 185, 0.6), 10, 0, 0, 4);
+}
+
+.button:pressed {
+    -fx-background-color: #1f618d;
+    -fx-translate-y: 2px; /* Hiệu ứng lún nút xuống khi click */
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0), 0, 0, 0, 0); /* Mất bóng khi lún */
+}
+
+/* --- NÚT ĐẶT GIÁ / THAM GIA (Màu Xanh Lá) --- */
+.btn-success {
+    -fx-background-color: #2ecc71;
+    -fx-effect: dropshadow(three-pass-box, rgba(46, 204, 113, 0.4), 8, 0, 0, 3);
+}
+.btn-success:hover { -fx-background-color: #27ae60; }
+.btn-success:pressed { -fx-background-color: #1e8449; }
+
+/* --- NÚT QUAY LẠI / HỦY (Màu Xám) --- */
+.btn-secondary {
+    -fx-background-color: #95a5a6;
+    -fx-effect: none;
+}
+.btn-secondary:hover { -fx-background-color: #7f8c8d; }
+.btn-secondary:pressed { -fx-background-color: #616a6b; }
+
+/* --- NÚT CẢNH BÁO / KẾT THÚC (Màu Đỏ) --- */
+.btn-danger {
+    -fx-background-color: #e74c3c;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.4), 8, 0, 0, 3);
+}
+.btn-danger:hover { -fx-background-color: #c0392b; }
+.btn-danger:pressed { -fx-background-color: #922b21; }
+
+
+/* =======================================================
+   BẢNG LỊCH SỬ ĐẶT GIÁ (TABLEVIEW)
+   ======================================================= */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #ecf0f1;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+}
+
+/* Phần thanh tiêu đề cột */
+.table-view .column-header-background {
+    -fx-background-color: #f8f9fa;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-padding: 0 0 5px 0;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 40px; /* Độ cao của thanh tiêu đề */
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #2c3e50;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* Các hàng trong bảng */
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #f1f2f6 transparent; /* Chỉ có viền gạch dưới mờ */
+    -fx-border-width: 1px;
+    -fx-cell-size: 35px; /* Chiều cao mỗi dòng */
+}
+
+/* Dòng chẵn lẻ khác màu cho dễ nhìn (Sọc dưa) */
+.table-row-cell:odd {
+    -fx-background-color: #fafbfc;
+}
+
+/* Khi di chuột vào 1 dòng */
+.table-row-cell:hover {
+    -fx-background-color: #f0f8ff;
+}
+
+/* Khi click chọn 1 dòng */
+.table-row-cell:selected {
+    -fx-background-color: #ebf5fb; /* Xanh nhạt sang trọng */
+    -fx-text-fill: #2980b9;
+    -fx-font-weight: bold;
+}
+.table-row-cell:selected .text {
+    -fx-fill: #2980b9;
+}
+/* =======================================================
+   HEADER
+   ======================================================= */
+.header-bar {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 3);
+}
+
+/* =======================================================
+   SIDEBAR
+   ======================================================= */
+.sidebar {
+    -fx-background-color: white;
+    -fx-border-color: #ecf0f1;
+    -fx-border-width: 0 1 0 0;
+}
+
+/* =======================================================
+   TITLED PANE (ACCORDION)
+   ======================================================= */
+.titled-pane > .title {
+    -fx-background-color: #f8f9fa;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14;
+}
+
+.titled-pane > .title:hover {
+    -fx-background-color: #ebf5fb;
+}
+
+.titled-pane > .title > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+/* =======================================================
+   SCROLLPANE
+   ======================================================= */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* =======================================================
+   COUNTDOWN TIMER
+   ======================================================= */
+.timer-box {
+    -fx-background-color: #2c3e50;
+    -fx-background-radius: 10;
+    -fx-padding: 8 18;
+    -fx-border-color: #7f8c8d;
+    -fx-border-radius: 10;
+}
+
+/* =======================================================
+   LINECHART
+   ======================================================= */
+.chart {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-padding: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 8, 0, 0, 3);
+}
+
+.chart-plot-background {
+    -fx-background-color: #fafbfc;
+}
+
+.chart-series-line {
+    -fx-stroke: #1976D2;
+    -fx-stroke-width: 2.5px;
+}
+
+.chart-line-symbol {
+    -fx-background-color: #1976D2, white;
+    -fx-background-radius: 5;
+    -fx-padding: 4;
+}
+
+/* =======================================================
+   COMBOBOX
+   ======================================================= */
+.combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 4 8;
+}
+
+.combo-box:focused {
+    -fx-border-color: #1976D2;
+    -fx-border-width: 2;
+}
+
+/* =======================================================
+   SEPARATOR
+   ======================================================= */
+.separator .line {
+    -fx-border-color: #ecf0f1;
+    -fx-border-width: 1;
+}
+
+/* =======================================================
+   CHECKBOX (AUTO BID)
+   ======================================================= */
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #1976D2;
+    -fx-border-color: #1976D2;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+/* =======================================================
+   TOOLTIP
+   ======================================================= */
+.tooltip {
+    -fx-background-color: #2c3e50;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14;
+    -fx-font-size: 12;
+}
+
+/* =======================================================
+   LIVE BADGE
+   ======================================================= */
+.live-badge {
+    -fx-background-color: #e74c3c;
+    -fx-background-radius: 20;
+    -fx-padding: 4 12;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 11;
+}
+/* Khung nội dung chính của Popup */
+.popup-vbox {
+    -fx-background-color: white;
+    -fx-border-color: #d1d5db; /* Viền xám rất nhẹ */
+    -fx-border-width: 1px;
+}
+
+/* Dòng thông tin có gạch chân mờ */
+.info-item-row {
+    -fx-padding: 10 0;
+    -fx-border-color: transparent transparent #f3f4f6 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.info-item-key {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e40af; /* Màu xanh đậm của Logo */
+    -fx-font-size: 13px;
+}
+/* 1. Bo góc và đổi màu nền cho thanh tiêu đề */
+.table-view .column-header-background {
+    -fx-background-color: #007bff;
+    -fx-background-radius: 15 15 0 0;
+    -fx-padding: 0;
+}
+
+/* 2. Căn giữa nhãn tiêu đề và XÓA BỎ khoảng trống của mũi tên sort */
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-alignment: CENTER;       /* Căn giữa nội dung */
+    -fx-text-alignment: CENTER;  /* Căn giữa chữ */
+    -fx-max-width: infinity;     /* Ép nhãn chiếm hết chiều ngang */
+    -fx-padding: 0;              /* Xóa mọi padding gây lệch */
+}
+
+/* 3. Đưa container chứa nhãn vào giữa và triệt tiêu diện tích mũi tên */
+.table-view .column-header .column-header-label {
+    -fx-alignment: CENTER;
+    -fx-padding: 0 0 0 0;        /* Đảm bảo không có khoảng trống bên phải */
+}
+
+/* 4. ẨN HOÀN TOÀN mũi tên (Sort Arrow) để không gây lệch */
+.table-view .column-header .arrow,
+.table-view .column-header .sort-order-dot {
+    -fx-padding: 0;
+    -fx-shape: "";               /* Xóa hình dáng mũi tên */
+    -fx-background-color: transparent;
+    -fx-max-width: 0;
+    -fx-max-height: 0;
+}
+
+/* 5. Chỉnh màu cho từng ô tiêu đề */
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 45px;
+    -fx-border-color: transparent;
+}
+
+/* 6. Bo góc tổng thể cho bảng */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1px;
+}

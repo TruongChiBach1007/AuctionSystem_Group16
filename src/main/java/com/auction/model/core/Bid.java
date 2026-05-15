@@ -1,10 +1,13 @@
 package com.auction.model.core;
 
 import com.auction.model.users.Bidder;
+
+import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-public class Bid {
+public class Bid implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Bidder bidder;
     private Double amount;
     private LocalTime time;
@@ -22,12 +25,16 @@ public class Bid {
     }
 
     //hàm để hiển thị thông tin trên table
+    // Sửa lại hàm này trong file Bid.java của Minh nhé
     public String getBidderName() {
+        // 1. Nếu có đối tượng Bidder thì lấy FullName
         if (this.bidder != null) {
             return this.bidder.getFullName();
         }
-        // Trả về tên bạn để khi bạn test (truyền null vào Bid) nó vẫn hiện chữ
-        return "Trương Chí Bách";
+
+        // 2. Nếu không có Bidder (dùng tên thủ công) thì lấy manualBidderName
+        // Nếu manualBidderName cũng null nốt thì mới hiện "N/A" (Không xác định)
+        return (this.manualBidderName != null) ? this.manualBidderName : "N/A";
     }
     // hàm fx lấy realtime
     public String getBidTime() {

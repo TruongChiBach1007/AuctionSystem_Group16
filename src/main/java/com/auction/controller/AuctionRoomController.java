@@ -48,7 +48,7 @@ public class AuctionRoomController {
     private XYChart.Series<Number, Number> series;
     private int bidCount = 0; // Đếm số lượt đặt giá
     private double currentHighestBid = 10000; // Giá khởi điểm
-    private int totalSeconds = 30;
+    private int totalSeconds = 600;
     private Timeline timeline;
     private Bidder currentUser;
 
@@ -108,20 +108,20 @@ public class AuctionRoomController {
         minutesLabel.setText(String.format("%02d", min));
         secondsLabel.setText(String.format("%02d", sec));
 
-        if (totalSeconds < 30) {
+        if (totalSeconds < 60) {
             String redStyle = "-fx-text-fill: #ff4757; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';";
             minutesLabel.setStyle(redStyle);
             secondsLabel.setStyle(redStyle);
             //Trả lại màu trắng khi gia hạn tgian
         }else{
-            String whiteStyle = "-fx-text-fill: white; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';";
+            String whiteStyle = "-fx-text-fill: #000a55; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';";
             minutesLabel.setStyle(whiteStyle);
             secondsLabel.setStyle(whiteStyle);
         }
     }
     // [MỚI] Hàm bổ trợ để Robot và Người dùng dùng chung logic đặt giá
     private void executeBidLogic(double newBid, String bidderName) {
-        if (bidderName.equals("Bạn") && currentUser!=null) {
+        if (currentUser != null && bidderName.equals(currentUser.getUsername())) {
             currentUser.setBalance(currentUser.getBalance() - newBid);
         }
         currentHighestBid = newBid;
@@ -211,7 +211,7 @@ public class AuctionRoomController {
             }
 
             // Nếu vượt qua 2 bước chặn trên -> Thực hiện đặt giá
-            executeBidLogic(newBid, "Bạn");
+            executeBidLogic(newBid, currentUser.getUsername());
             bidInput.clear();
             bidInput.requestFocus();
 
@@ -228,14 +228,25 @@ public class AuctionRoomController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/bidder-dashboard.fxml"));
             Parent root = loader.load();
+
+            // 💡 BƯỚC QUAN TRỌNG ĐÂY MINH ƠI:
+            // Lấy controller của Dashboard vừa mới load lên
+            BidderDashboardController dashboardController = loader.getController();
+
+            // Truyền lại cái tên từ AuctionRoom quay ngược về Dashboard
+            // Dùng chính cái currentUser mà em đã có trong AuctionRoom
+            if (currentUser != null) {
+                dashboardController.setLblUsername(currentUser.getUsername());
+            }
+
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
             stage.setTitle("Trang Chủ - Sàn Đấu Giá");
             stage.centerOnScreen();
 
         } catch (IOException e) {
-            System.err.println("Lỗi: Không tìm thấy file guest-dashboard.fxml");
             e.printStackTrace();
         }
     }
+
 }

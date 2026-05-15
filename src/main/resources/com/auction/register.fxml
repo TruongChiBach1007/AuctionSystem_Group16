@@ -10,7 +10,7 @@
         stylesheets="@css/styles.css"
         xmlns="http://javafx.com/javafx/8"
         xmlns:fx="http://javafx.com/fxml/1"
-        fx:controller="com.auction.controller.LoginController"
+        fx:controller="com.auction.controller.RegisterController"
         style="-fx-background-color: #c8d8f8;">
 
     <!-- NỬA TRÁI -->
@@ -23,7 +23,6 @@
 
         <!-- Logo -->
         <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 0 0 28 0;">
-            <!-- Icon logo hình búa đấu giá -->
             <StackPane minWidth="44" minHeight="44" maxWidth="44" maxHeight="44"
                        style="-fx-background-color: #3b82f6; -fx-background-radius: 10;">
                 <Label text="🔨" style="-fx-font-size: 20;"/>
@@ -34,9 +33,9 @@
 
         <!-- Hero title -->
         <VBox spacing="0" style="-fx-padding: 0 0 12 0;">
-            <Label text="Nền tảng Đấu Giá"
+            <Label text="Tạo tài khoản"
                    style="-fx-font-size: 34; -fx-font-weight: bold; -fx-text-fill: #1e3154;"/>
-            <Label text="Trực Tuyến"
+            <Label text="mới ngay hôm nay"
                    style="-fx-font-size: 34; -fx-font-weight: bold; -fx-text-fill: #3b82f6;"/>
         </VBox>
 
@@ -45,18 +44,15 @@
                 text="Tham gia hàng nghìn phiên đấu giá uy tín — nghệ thuật, cổ vật, xa xỉ phẩm, và nhiều hơn nữa."
                 wrapText="true"
                 maxWidth="380"
-                style="-fx-font-size: 14; -fx-text-fill: #4a6080; -fx-padding: 0 0 24 0;"/>
+                style="-fx-font-size: 14; -fx-text-fill: #4a6080; -fx-padding: 0 0 28 0;"/>
 
         <!-- 4 Features -->
         <GridPane hgap="14" vgap="14">
 
-            <!-- Feature 1 -->
             <HBox alignment="TOP_LEFT" spacing="10"
                   GridPane.columnIndex="0" GridPane.rowIndex="0"
-                  style="-fx-background-color: white;
-                         -fx-background-radius: 10;
-                         -fx-border-color: rgba(59,130,246,0.2);
-                         -fx-border-radius: 10;
+                  style="-fx-background-color: white; -fx-background-radius: 10;
+                         -fx-border-color: rgba(59,130,246,0.2); -fx-border-radius: 10;
                          -fx-padding: 12;">
                 <StackPane minWidth="40" minHeight="40" maxWidth="40" maxHeight="40"
                            style="-fx-background-color: rgba(59,130,246,0.15); -fx-background-radius: 8;">
@@ -71,13 +67,10 @@
                 </VBox>
             </HBox>
 
-            <!-- Feature 2 -->
             <HBox alignment="TOP_LEFT" spacing="10"
                   GridPane.columnIndex="1" GridPane.rowIndex="0"
-                  style="-fx-background-color: white;
-                         -fx-background-radius: 10;
-                         -fx-border-color: rgba(59,130,246,0.2);
-                         -fx-border-radius: 10;
+                  style="-fx-background-color: white; -fx-background-radius: 10;
+                         -fx-border-color: rgba(59,130,246,0.2); -fx-border-radius: 10;
                          -fx-padding: 12;">
                 <StackPane minWidth="40" minHeight="40" maxWidth="40" maxHeight="40"
                            style="-fx-background-color: rgba(59,130,246,0.15); -fx-background-radius: 8;">
@@ -93,13 +86,10 @@
                 </VBox>
             </HBox>
 
-            <!-- Feature 3 -->
             <HBox alignment="TOP_LEFT" spacing="10"
                   GridPane.columnIndex="0" GridPane.rowIndex="1"
-                  style="-fx-background-color: white;
-                         -fx-background-radius: 10;
-                         -fx-border-color: rgba(59,130,246,0.2);
-                         -fx-border-radius: 10;
+                  style="-fx-background-color: white; -fx-background-radius: 10;
+                         -fx-border-color: rgba(59,130,246,0.2); -fx-border-radius: 10;
                          -fx-padding: 12;">
                 <StackPane minWidth="40" minHeight="40" maxWidth="40" maxHeight="40"
                            style="-fx-background-color: rgba(59,130,246,0.15); -fx-background-radius: 8;">
@@ -114,13 +104,10 @@
                 </VBox>
             </HBox>
 
-            <!-- Feature 4 -->
             <HBox alignment="TOP_LEFT" spacing="10"
                   GridPane.columnIndex="1" GridPane.rowIndex="1"
-                  style="-fx-background-color: white;
-                         -fx-background-radius: 10;
-                         -fx-border-color: rgba(59,130,246,0.2);
-                         -fx-border-radius: 10;
+                  style="-fx-background-color: white; -fx-background-radius: 10;
+                         -fx-border-color: rgba(59,130,246,0.2); -fx-border-radius: 10;
                          -fx-padding: 12;">
                 <StackPane minWidth="40" minHeight="40" maxWidth="40" maxHeight="40"
                            style="-fx-background-color: rgba(59,130,246,0.15); -fx-background-radius: 8;">
@@ -138,7 +125,7 @@
         </GridPane>
     </VBox>
 
-    <!-- NỬA PHẢI -->
+    <!-- NỬA PHẢI — Form đăng ký -->
     <VBox
             prefWidth="440"
             alignment="CENTER_LEFT"
@@ -146,98 +133,99 @@
             style="-fx-background-color: #e8f0fe;
                -fx-border-color: transparent transparent transparent rgba(59,130,246,0.2);
                -fx-border-width: 0 0 0 1;
-               -fx-padding: 44 40 44 40;">
+               -fx-padding: 36 40 36 40;">
 
-        <!-- Security badge -->
-        <HBox alignment="CENTER_LEFT" spacing="6"
-              style="-fx-background-color: rgba(34,197,94,0.12);
-                     -fx-background-radius: 20;
-                     -fx-border-color: rgba(34,197,94,0.35);
-                     -fx-border-radius: 20;
-                     -fx-padding: 5 12 5 12;"
-              maxWidth="175">
-            <Circle radius="4" style="-fx-fill: #16a34a;"/>
-            <Label text="Cổng đăng nhập bảo mật"
-                   style="-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #16a34a;"/>
-        </HBox>
+        <Label text="Đăng ký"
+               style="-fx-font-size: 26; -fx-font-weight: bold; -fx-text-fill: #1e3154;"/>
+
+        <Region minHeight="4"/>
+
+        <Label text="Điền thông tin để tạo tài khoản mới"
+               style="-fx-font-size: 13; -fx-text-fill: #4a6080;"/>
 
         <Region minHeight="20"/>
 
-        <Label text="Đăng nhập"
-               style="-fx-font-size: 26; -fx-font-weight: bold; -fx-text-fill: #1e3154;"/>
-
-        <Region minHeight="6"/>
-
-        <Label text="Chào mừng trở lại — vui lòng xác thực tài khoản"
-               style="-fx-font-size: 13; -fx-text-fill: #4a6080;"/>
-
-        <Region minHeight="26"/>
-
-        <!-- Username -->
-        <VBox spacing="8">
-            <Label text="Tên tài khoản"
+        <!-- Họ và tên -->
+        <VBox spacing="6">
+            <Label text="Họ và tên"
                    style="-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #4a6080;"/>
-            <TextField
-                    fx:id="nameField"
-                    promptText="Nhập tên tài khoản..."
-                    style="-fx-background-color: #ffffff;
-                       -fx-border-color: rgba(59,130,246,0.35);
-                       -fx-border-radius: 10; -fx-background-radius: 10;
-                       -fx-padding: 13 16 13 16;
-                       -fx-font-size: 14; -fx-text-fill: #1e3154;
-                       -fx-prompt-text-fill: #a0b4cc;"/>
+            <TextField fx:id="txtFullName" promptText="Nhập họ và tên..."
+                       style="-fx-background-color: white;
+                              -fx-border-color: rgba(59,130,246,0.35);
+                              -fx-border-radius: 10; -fx-background-radius: 10;
+                              -fx-padding: 11 16; -fx-font-size: 13;
+                              -fx-text-fill: #1e3154; -fx-prompt-text-fill: #a0b4cc;"/>
         </VBox>
 
-        <Region minHeight="16"/>
+        <Region minHeight="12"/>
 
-        <!-- Password -->
-        <VBox spacing="8">
+        <!-- Tên tài khoản -->
+        <VBox spacing="6">
+            <Label text="Tên tài khoản"
+                   style="-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #4a6080;"/>
+            <TextField fx:id="txtUsername" promptText="Nhập tên tài khoản..."
+                       style="-fx-background-color: white;
+                              -fx-border-color: rgba(59,130,246,0.35);
+                              -fx-border-radius: 10; -fx-background-radius: 10;
+                              -fx-padding: 11 16; -fx-font-size: 13;
+                              -fx-text-fill: #1e3154; -fx-prompt-text-fill: #a0b4cc;"/>
+        </VBox>
+
+        <Region minHeight="12"/>
+
+        <!-- Email -->
+        <VBox spacing="6">
+            <Label text="Email"
+                   style="-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #4a6080;"/>
+            <TextField fx:id="txtEmail" promptText="Nhập email..."
+                       style="-fx-background-color: white;
+                              -fx-border-color: rgba(59,130,246,0.35);
+                              -fx-border-radius: 10; -fx-background-radius: 10;
+                              -fx-padding: 11 16; -fx-font-size: 13;
+                              -fx-text-fill: #1e3154; -fx-prompt-text-fill: #a0b4cc;"/>
+        </VBox>
+
+        <Region minHeight="12"/>
+
+        <!-- Mật khẩu -->
+        <VBox spacing="6">
             <Label text="Mật khẩu"
                    style="-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #4a6080;"/>
-            <PasswordField
-                    fx:id="passwordField"
-                    onAction="#handleConnect"
-                    promptText="Nhập mật khẩu..."
-                    style="-fx-background-color: #ffffff;
-                       -fx-border-color: rgba(59,130,246,0.35);
-                       -fx-border-radius: 10; -fx-background-radius: 10;
-                       -fx-padding: 13 16 13 16;
-                       -fx-font-size: 14; -fx-text-fill: #1e3154;
-                       -fx-prompt-text-fill: #a0b4cc;"/>
+            <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu..."
+                           style="-fx-background-color: white;
+                                  -fx-border-color: rgba(59,130,246,0.35);
+                                  -fx-border-radius: 10; -fx-background-radius: 10;
+                                  -fx-padding: 11 16; -fx-font-size: 13;
+                                  -fx-text-fill: #1e3154; -fx-prompt-text-fill: #a0b4cc;"/>
         </VBox>
 
         <Region minHeight="6"/>
 
         <!-- Error label -->
         <Label fx:id="messageLabel"
-               wrapText="true"
-               maxWidth="360"
+               wrapText="true" maxWidth="360"
                style="-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: #dc2626;"/>
 
         <Region minHeight="8"/>
 
-        <!-- Login button -->
-        <Button
-                text="ĐĂNG NHẬP"
-                onAction="#handleConnect"
-                prefWidth="360"
-                style="-fx-background-color: #3b82f6;
-                   -fx-text-fill: white;
-                   -fx-font-weight: bold; -fx-font-size: 14;
-                   -fx-padding: 14;
-                   -fx-background-radius: 10;
-                   -fx-cursor: hand;
-                   -fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 16, 0, 0, 4);"/>
+        <!-- Nút đăng ký -->
+        <Button text="ĐĂNG KÝ" onAction="#handleRegister" prefWidth="360"
+                style="-fx-background-color: #3b82f6; -fx-text-fill: white;
+                       -fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 13;
+                       -fx-background-radius: 10; -fx-cursor: hand;
+                       -fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 16, 0, 0, 4);"/>
 
-        <Region minHeight="16"/>
+        <Region minHeight="14"/>
 
-        <!-- Register -->
+        <!-- Dòng quay lại -->
         <HBox alignment="CENTER" spacing="4">
-            <Label text="Chưa có tài khoản?"
+            <Label text="Đã có tài khoản?"
                    style="-fx-font-size: 13; -fx-text-fill: #4a6080;"/>
-            <Hyperlink text="Đăng ký ngay" onAction="#handleRegister"
-                       style="-fx-font-size: 13; -fx-font-weight: bold;
-                  -fx-text-fill: #3b82f6; -fx-border-color: transparent;"/>
+            <Button text="Đăng nhập ngay" onAction="#handleBackToLogin"
+                    style="-fx-background-color: transparent; -fx-font-size: 13;
+               -fx-font-weight: bold; -fx-text-fill: #3b82f6;
+               -fx-border-color: transparent; -fx-cursor: hand;
+               -fx-padding: 0;"/>
         </HBox>
 
     </VBox>

@@ -236,7 +236,7 @@ public class SellerDashboardController {
     }
 
     public void setLblUsername(String username) {
-        lblUsername.setText("Tên TK: " + username.toUpperCase());
+        lblUsername.setText("Tên tài khoản: " + username.toUpperCase());
     }
 
     private void clearForm() {

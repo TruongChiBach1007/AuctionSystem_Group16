@@ -4,11 +4,13 @@ import com.auction.model.users.Bidder;
 import com.auction.pattern.AuctionObserver;
 import com.auction.service.AutoBid;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 
-public class Auction {
+public class Auction implements Serializable {
+    private static final long serialVersionUID = 1L;
     private double currentPrice;
     private Bidder highestBidder;
     private boolean closed = false; // trạng thái phiên đang mở
