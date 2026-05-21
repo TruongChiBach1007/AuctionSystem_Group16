@@ -97,6 +97,11 @@
                         <TextField fx:id="txtStartPrice" promptText="VD: 1.000.000" styleClass="text-field"/>
                     </VBox>
 
+                    <VBox spacing="5">
+                        <Label text="URL anh san pham" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
+                        <TextField fx:id="txtImageUrl" promptText="https://..." styleClass="text-field"/>
+                    </VBox>
+
                     <VBox fx:id="vboxExtra" spacing="5" visible="false" managed="false">
                         <Label fx:id="lblExtra" text="Thông tin thêm" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
                         <TextField fx:id="txtExtra" styleClass="text-field"/>

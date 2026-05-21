@@ -1,14 +1,13 @@
 package com.auction.controller;
 
 import com.auction.model.core.Bid;
+import com.auction.model.items.Item;
 import com.auction.model.users.Bidder;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.input.MouseEvent;
-import javafx.stage.Window;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,14 +16,23 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
+
 import java.io.IOException;
 
 public class AuctionRoomController {
-// khai báo bảng
     @FXML private TableView<Bid> auctionTable;
     @FXML private TableColumn<Bid, String> nguoiDatCol;
     @FXML private TableColumn<Bid, Double> giaCol;
@@ -38,55 +46,53 @@ public class AuctionRoomController {
     @FXML private TextField maxBidField;
     @FXML private TextField stepBidField;
     @FXML private Tooltip autoBidTooltip;
-    @FXML private Label helpIcon;
 
-    private ObservableList<Bid> bidHistory = FXCollections.observableArrayList();
-
-    // --- Khai báo các thành phần giao diện trùng khớp với FXML ---
-
-    // Dữ liệu của biểu đồ
+    private final ObservableList<Bid> bidHistory = FXCollections.observableArrayList();
     private XYChart.Series<Number, Number> series;
-    private int bidCount = 0; // Đếm số lượt đặt giá
-    private double currentHighestBid = 10000; // Giá khởi điểm
+    private int bidCount = 0;
+    private double currentHighestBid = 10000;
     private int totalSeconds = 600;
     private Timeline timeline;
     private Bidder currentUser;
+    private Item auctionItem;
 
     public void setCurrentUser(String username) {
-        // Khởi tạo user với tên từ màn hình Login/Dashboard
         this.currentUser = new Bidder(1, username, "pass", username, username + "@gmail.com", 500000.0);
         if (statusLabel != null) {
-            statusLabel.setText("Chào mừng " + username + "! Sẵn sàng đấu giá.");
+            statusLabel.setText("Chao mung " + username + "! San sang dau gia.");
         }
     }
 
+    public void setAuctionItem(Item item) {
+        this.auctionItem = item;
+        this.currentHighestBid = item.getCurrentPrice();
+        if (series != null) {
+            series.setName("Bien dong gia " + item.getName());
+            series.getData().clear();
+            bidCount = 0;
+            series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
+        }
+        if (statusLabel != null) {
+            statusLabel.setText("Gia hien tai cua " + item.getName() + ": " + String.format("%,.0f VND", currentHighestBid));
+        }
+    }
 
-    // Robot của autobid
-    private boolean isAutoBidActive = false;
-    private double maxAutoBidLimit = 0;
-
-
-    // Hàm này chạy ngay khi màn hình vừa bật lên
     @FXML
     public void initialize() {
-        //tableview
         nguoiDatCol.setCellValueFactory(new PropertyValueFactory<>("bidderName"));
         giaCol.setCellValueFactory(new PropertyValueFactory<>("amount"));
         thoiGianCol.setCellValueFactory(new PropertyValueFactory<>("bidTime"));
         auctionTable.setItems(bidHistory);
 
-        //linechart
         series = new XYChart.Series<>();
-        series.setName("Biến động giá iPhone 15 Pro Max");
+        series.setName("Bien dong gia iPhone 15 Pro Max");
         priceChart.getData().add(series);
-
-        // Nạp thử 1 điểm giá khởi điểm vào biểu đồ
         series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
-        statusLabel.setText("Giá khởi điểm là: VND" + currentHighestBid);
 
-        //Hàm đê ngược
+        statusLabel.setText("Gia khoi diem la: VND " + String.format("%.0f", currentHighestBid));
         startCountdown();
     }
+
     private void startCountdown() {
         timeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             if (totalSeconds > 0) {
@@ -94,7 +100,7 @@ public class AuctionRoomController {
                 updateClockDisplay();
             } else {
                 timeline.stop();
-                statusLabel.setText("🛑 PHIÊN ĐẤU GIÁ ĐÃ KẾT THÚC!");
+                statusLabel.setText("Phien dau gia da ket thuc!");
                 bidInput.setDisable(true);
             }
         }));
@@ -108,68 +114,60 @@ public class AuctionRoomController {
         minutesLabel.setText(String.format("%02d", min));
         secondsLabel.setText(String.format("%02d", sec));
 
-        if (totalSeconds < 60) {
-            String redStyle = "-fx-text-fill: #ff4757; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';";
-            minutesLabel.setStyle(redStyle);
-            secondsLabel.setStyle(redStyle);
-            //Trả lại màu trắng khi gia hạn tgian
-        }else{
-            String whiteStyle = "-fx-text-fill: #000a55; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';";
-            minutesLabel.setStyle(whiteStyle);
-            secondsLabel.setStyle(whiteStyle);
-        }
+        String style = totalSeconds < 60
+                ? "-fx-text-fill: #ff4757; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';"
+                : "-fx-text-fill: #000a55; -fx-font-size: 24; -fx-font-weight: bold; -fx-font-family: 'Arial Black';";
+        minutesLabel.setStyle(style);
+        secondsLabel.setStyle(style);
     }
-    // [MỚI] Hàm bổ trợ để Robot và Người dùng dùng chung logic đặt giá
+
     private void executeBidLogic(double newBid, String bidderName) {
         if (currentUser != null && bidderName.equals(currentUser.getUsername())) {
             currentUser.setBalance(currentUser.getBalance() - newBid);
         }
+
         currentHighestBid = newBid;
         bidCount++;
         series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
-
-        Bid newBidEntry = new Bid(bidderName, newBid);
-        bidHistory.add(0, newBidEntry);
-
-        statusLabel.setText("✅ " + bidderName + " đặt giá: " + String.format("%.0f", newBid));
-        statusLabel.setStyle("-fx-text-fill: #27ae60;");
+        bidHistory.add(0, new Bid(bidderName, newBid));
 
         if (totalSeconds < 10) {
             totalSeconds += 15;
-            statusLabel.setText("⚡ Hệ thống tự động gia hạn 15s!");
             updateClockDisplay();
-        } else {
-            statusLabel.setText("✅ " + bidderName + " đặt giá thành công: " + newBid+"VND");
         }
+
+        statusLabel.setText(bidderName + " dat gia thanh cong: " + String.format("%.0f", newBid) + " VND");
         statusLabel.setStyle("-fx-text-fill: #27ae60;");
 
-        // Kích hoạt Robot nếu người vừa đặt không phải Robot
-        if (!bidderName.equals("Hệ thống (Auto)")) {
+        if (!bidderName.equals("He thong (Auto)")) {
             checkAndExecuteAutoBid(currentHighestBid);
         }
     }
-    // [MỚI] Hàm xử lý Robot Auto-Bid
-    private void checkAndExecuteAutoBid(double latestPrice) {
-        if (autoBidCheckBox.isSelected()) {
-            try {
-                double step = stepBidField.getText().isEmpty() ? 500.0 : Double.parseDouble(stepBidField.getText());
-                double limit = maxBidField.getText().isEmpty() ? currentUser.getBalance() :
-                        Math.min(Double.parseDouble(maxBidField.getText()), currentUser.getBalance());
 
-                if (latestPrice < limit) {
-                    double myNewBid = latestPrice + step;
-                    if (myNewBid <= limit) {
-                        Timeline robotThinking = new Timeline(new KeyFrame(Duration.seconds(1.5), ev -> {
-                            executeBidLogic(myNewBid, "Hệ thống (Auto)");
-                        }));
-                        robotThinking.play();
-                    }
+    private void checkAndExecuteAutoBid(double latestPrice) {
+        if (!autoBidCheckBox.isSelected()) return;
+
+        try {
+            double step = stepBidField.getText().isEmpty() ? 500.0 : Double.parseDouble(stepBidField.getText());
+            double limit = maxBidField.getText().isEmpty()
+                    ? currentUser.getBalance()
+                    : Math.min(Double.parseDouble(maxBidField.getText()), currentUser.getBalance());
+
+            if (latestPrice < limit) {
+                double myNewBid = latestPrice + step;
+                if (myNewBid <= limit) {
+                    Timeline robotThinking = new Timeline(new KeyFrame(Duration.seconds(1.5), ev ->
+                            executeBidLogic(myNewBid, "He thong (Auto)")
+                    ));
+                    robotThinking.play();
                 }
-            } catch (Exception e) {
-                statusLabel.setText("⚠️ Lỗi thông số Auto-Bid!");
             }
+        } catch (Exception e) {
+            statusLabel.setText("Loi thong so Auto-Bid!");
+            statusLabel.setStyle("-fx-text-fill: #e74c3c;");
         }
     }
+
     @FXML
     private void handleHelpClick(MouseEvent event) {
         Node source = (Node) event.getSource();
@@ -178,50 +176,57 @@ public class AuctionRoomController {
         if (autoBidTooltip.isShowing()) {
             autoBidTooltip.hide();
         } else {
-            // Ép tooltip hiện ngay tại vị trí click chuột
             autoBidTooltip.show(window, event.getScreenX(), event.getScreenY() + 10);
         }
     }
 
-    // --- Xử lý nút ĐẶT GIÁ ---
     @FXML
     public void handlePlaceBid(ActionEvent event) {
         String input = bidInput.getText();
         if (input == null || input.trim().isEmpty()) {
-            statusLabel.setText("❌ Vui lòng nhập số tiền!");
+            statusLabel.setText("Vui long nhap so tien!");
             statusLabel.setStyle("-fx-text-fill: #e74c3c;");
             return;
         }
 
         try {
-            double newBid = Double.parseDouble(input);
+            double newBid = Double.parseDouble(input.trim());
 
-            // Kiểm tra 1: Phải cao hơn giá hiện tại
             if (newBid <= currentHighestBid) {
-                statusLabel.setText("❌ Giá phải cao hơn VND " + currentHighestBid);
+                statusLabel.setText("Gia phai cao hon VND " + String.format("%.0f", currentHighestBid));
                 statusLabel.setStyle("-fx-text-fill: #e74c3c;");
                 return;
             }
 
-            // Kiểm tra 2: Phải nhỏ hơn hoặc bằng số dư tài khoản
-            if (newBid > currentUser.getBalance()) {
-                statusLabel.setText("❌ Số dư không đủ! (Bạn có: " + String.format("%.0f", currentUser.getBalance()) + ")");
+            if (currentUser != null && newBid > currentUser.getBalance()) {
+                statusLabel.setText("So du khong du! Ban co: " + String.format("%.0f", currentUser.getBalance()));
                 statusLabel.setStyle("-fx-text-fill: #e74c3c;");
                 return;
             }
 
-            // Nếu vượt qua 2 bước chặn trên -> Thực hiện đặt giá
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Xac nhan dat gia");
+            confirm.setHeaderText(null);
+            confirm.setContentText("Ban co chac chan muon dat gia " + String.format("%.0f", newBid) + " VND khong?");
+
+            if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+                statusLabel.setText("Da huy dat gia.");
+                statusLabel.setStyle("-fx-text-fill: #e67e22;");
+                return;
+            }
+
             executeBidLogic(newBid, currentUser.getUsername());
+            if (auctionItem != null) {
+                auctionItem.setCurrentPrice(newBid);
+            }
             bidInput.clear();
             bidInput.requestFocus();
-
         } catch (NumberFormatException e) {
-            statusLabel.setText("❌ Vui lòng nhập số hợp lệ!");
+            statusLabel.setText("Vui long nhap so hop le!");
             statusLabel.setStyle("-fx-text-fill: #e74c3c;");
         }
     }
 
-    // --- Xử lý nút QUAY LẠI ---
     @FXML
     public void handleBackToDashboard(ActionEvent event) {
         if (timeline != null) timeline.stop();
@@ -229,24 +234,17 @@ public class AuctionRoomController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/bidder-dashboard.fxml"));
             Parent root = loader.load();
 
-            // 💡 BƯỚC QUAN TRỌNG ĐÂY MINH ƠI:
-            // Lấy controller của Dashboard vừa mới load lên
             BidderDashboardController dashboardController = loader.getController();
-
-            // Truyền lại cái tên từ AuctionRoom quay ngược về Dashboard
-            // Dùng chính cái currentUser mà em đã có trong AuctionRoom
             if (currentUser != null) {
                 dashboardController.setLblUsername(currentUser.getUsername());
             }
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Trang Chủ - Sàn Đấu Giá");
+            stage.setTitle("Trang Chu - San Dau Gia");
             stage.centerOnScreen();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 }

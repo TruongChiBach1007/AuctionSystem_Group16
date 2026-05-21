@@ -1,12 +1,25 @@
 package com.auction.controller;
 
+import com.auction.model.items.Item;
+import com.auction.network.AuctionClient;
+import com.auction.network.AuctionMessage;
+import com.auction.network.MessageType;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -20,40 +33,87 @@ public class AdminDashboardController {
     @FXML private Label lblPending;
     @FXML private Label lblRevenue;
 
-    // Các pane tab
     @FXML private VBox paneOverview;
     @FXML private VBox paneUsers;
     @FXML private VBox paneProducts;
     @FXML private VBox paneDeposits;
     @FXML private VBox paneAuctions;
 
-    // Sidebar buttons
     @FXML private Button btnOverview;
     @FXML private Button btnUsers;
     @FXML private Button btnProducts;
     @FXML private Button btnDeposits;
     @FXML private Button btnAuctions;
 
-    // Tables
     @FXML private TableView tableUsers;
-    @FXML private TableView tableProducts;
+    @FXML private TableView<Item> tableProducts;
+    @FXML private TableColumn<Item, String> colProductName;
+    @FXML private TableColumn<Item, String> colProductCategory;
+    @FXML private TableColumn<Item, Double> colProductPrice;
+    @FXML private TableColumn<Item, String> colProductSeller;
+    @FXML private TableColumn<Item, String> colProductStatus;
     @FXML private TableView tableDeposits;
     @FXML private TableView tableAuctions;
 
+    private final ObservableList<Item> pendingItems = FXCollections.observableArrayList();
+    private AuctionClient auctionClient;
+
     @FXML
     public void initialize() {
-        // Load dữ liệu tổng quan tạm thời
         lblTotalUsers.setText("12");
         lblTotalProducts.setText("5");
-        lblPending.setText("3");
-        lblRevenue.setText("150,000,000 VNĐ");
+        lblPending.setText("0");
+        lblRevenue.setText("150,000,000 VND");
+        setupProductTable();
     }
 
     public void setAdminName(String name) {
-        lblAdminName.setText("👤 " + name.toUpperCase());
+        if (auctionClient == null) {
+            connectSocket();
+        }
+        lblAdminName.setText("Admin " + name.toUpperCase());
+        updatePendingCount();
     }
 
-    // Chuyển tab — ẩn hết rồi hiện cái được chọn
+    private void setupProductTable() {
+        if (tableProducts == null) return;
+        colProductName.setCellValueFactory(new PropertyValueFactory<>("name"));
+        colProductCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
+        colProductPrice.setCellValueFactory(new PropertyValueFactory<>("startingPrice"));
+        colProductSeller.setCellValueFactory(new PropertyValueFactory<>("sellerName"));
+        colProductStatus.setCellValueFactory(new PropertyValueFactory<>("statusText"));
+        tableProducts.setItems(pendingItems);
+    }
+
+    private void connectSocket() {
+        auctionClient = new AuctionClient();
+        try {
+            auctionClient.connect(true, this::handleSocketMessage);
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Socket error", "Admin khong ket noi duoc server: " + e.getMessage());
+        }
+    }
+
+    private void handleSocketMessage(AuctionMessage message) {
+        if (message == null || message.getType() == null) return;
+
+        Platform.runLater(() -> {
+            if (message.getType() == MessageType.ITEM_PENDING && message.getItem() != null) {
+                pendingItems.add(0, message.getItem());
+            } else if ((message.getType() == MessageType.ITEM_APPROVED || message.getType() == MessageType.ITEM_REJECTED)
+                    && message.getItem() != null) {
+                pendingItems.removeIf(item -> item.getId().equals(message.getItemId()));
+            } else if (message.getType() == MessageType.ERROR) {
+                showAlert(Alert.AlertType.ERROR, "Socket error", message.getMessage());
+            }
+            updatePendingCount();
+        });
+    }
+
+    private void updatePendingCount() {
+        lblPending.setText(String.valueOf(pendingItems.size()));
+    }
+
     private void showPane(VBox pane, Button activeBtn) {
         paneOverview.setVisible(false);
         paneUsers.setVisible(false);
@@ -62,13 +122,12 @@ public class AdminDashboardController {
         paneAuctions.setVisible(false);
         pane.setVisible(true);
 
-        // Reset style sidebar
-        String defaultStyle = "-fx-background-color: transparent; -fx-text-fill: white; " +
-                "-fx-font-size: 13; -fx-padding: 12 15; " +
-                "-fx-background-radius: 8; -fx-cursor: hand;";
-        String activeStyle = "-fx-background-color: white; -fx-text-fill: #1976D2; " +
-                "-fx-font-weight: bold; -fx-padding: 12 15; " +
-                "-fx-background-radius: 8; -fx-cursor: hand;";
+        String defaultStyle = "-fx-background-color: transparent; -fx-text-fill: white; "
+                + "-fx-font-size: 13; -fx-padding: 12 15; "
+                + "-fx-background-radius: 8; -fx-cursor: hand;";
+        String activeStyle = "-fx-background-color: white; -fx-text-fill: #1976D2; "
+                + "-fx-font-weight: bold; -fx-padding: 12 15; "
+                + "-fx-background-radius: 8; -fx-cursor: hand;";
 
         btnOverview.setStyle(defaultStyle);
         btnUsers.setStyle(defaultStyle);
@@ -84,90 +143,94 @@ public class AdminDashboardController {
     @FXML public void showDeposits(ActionEvent e) { showPane(paneDeposits, btnDeposits); }
     @FXML public void showAuctions(ActionEvent e) { showPane(paneAuctions, btnAuctions); }
 
-    // --- Quản lý Users ---
+    @FXML
+    public void handleApproveProduct(ActionEvent event) {
+        Item selectedItem = tableProducts.getSelectionModel().getSelectedItem();
+        if (selectedItem == null) {
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon san pham de duyet!");
+            return;
+        }
+        auctionClient.send(new AuctionMessage(MessageType.APPROVE_ITEM, selectedItem.getId(), true));
+        pendingItems.remove(selectedItem);
+        updatePendingCount();
+        showAlert(Alert.AlertType.INFORMATION, "Da duyet", "San pham da duoc duyet va dua len san!");
+    }
+
+    @FXML
+    public void handleRejectProduct(ActionEvent event) {
+        Item selectedItem = tableProducts.getSelectionModel().getSelectedItem();
+        if (selectedItem == null) {
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon san pham de tu choi!");
+            return;
+        }
+        auctionClient.send(new AuctionMessage(MessageType.REJECT_ITEM, selectedItem.getId(), true));
+        pendingItems.remove(selectedItem);
+        updatePendingCount();
+        showAlert(Alert.AlertType.INFORMATION, "Da tu choi", "San pham da bi tu choi!");
+    }
+
     @FXML
     public void handleLockUser(ActionEvent event) {
         if (tableUsers.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn user để khóa!");
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon user de khoa!");
             return;
         }
-        showAlert(Alert.AlertType.INFORMATION, "Đã khóa", "Tài khoản đã bị khóa thành công!");
+        showAlert(Alert.AlertType.INFORMATION, "Da khoa", "Tai khoan da bi khoa thanh cong!");
     }
 
     @FXML
     public void handleUnlockUser(ActionEvent event) {
         if (tableUsers.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn user để mở khóa!");
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon user de mo khoa!");
             return;
         }
-        showAlert(Alert.AlertType.INFORMATION, "Đã mở khóa", "Tài khoản đã được mở khóa!");
+        showAlert(Alert.AlertType.INFORMATION, "Da mo khoa", "Tai khoan da duoc mo khoa!");
     }
 
-    // --- Duyệt sản phẩm ---
-    @FXML
-    public void handleApproveProduct(ActionEvent event) {
-        if (tableProducts.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để duyệt!");
-            return;
-        }
-        showAlert(Alert.AlertType.INFORMATION, "Đã duyệt", "Sản phẩm đã được duyệt và đưa lên sàn!");
-    }
-
-    @FXML
-    public void handleRejectProduct(ActionEvent event) {
-        if (tableProducts.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để từ chối!");
-            return;
-        }
-        showAlert(Alert.AlertType.INFORMATION, "Đã từ chối", "Sản phẩm đã bị từ chối!");
-    }
-
-    // --- Duyệt nạp tiền ---
     @FXML
     public void handleApproveDeposit(ActionEvent event) {
         if (tableDeposits.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn yêu cầu để duyệt!");
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon yeu cau de duyet!");
             return;
         }
-        // TODO: gửi lệnh duyệt qua socket sau khi thành viên 3 làm xong
-        showAlert(Alert.AlertType.INFORMATION, "Đã duyệt", "Yêu cầu nạp tiền đã được duyệt!\nSố dư user đã được cộng.");
+        showAlert(Alert.AlertType.INFORMATION, "Da duyet", "Yeu cau nap tien da duoc duyet!");
     }
 
     @FXML
     public void handleRejectDeposit(ActionEvent event) {
         if (tableDeposits.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn yêu cầu để từ chối!");
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon yeu cau de tu choi!");
             return;
         }
-        showAlert(Alert.AlertType.INFORMATION, "Đã từ chối", "Yêu cầu nạp tiền đã bị từ chối!");
+        showAlert(Alert.AlertType.INFORMATION, "Da tu choi", "Yeu cau nap tien da bi tu choi!");
     }
 
-    // --- Quản lý đấu giá ---
     @FXML
     public void handleStopAuction(ActionEvent event) {
         if (tableAuctions.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn phiên đấu giá để dừng!");
+            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon phien dau gia de dung!");
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Xác nhận dừng");
-        confirm.setContentText("Bạn có chắc muốn dừng phiên đấu giá này không?");
+        confirm.setTitle("Xac nhan dung");
+        confirm.setHeaderText(null);
+        confirm.setContentText("Ban co chac muon dung phien dau gia nay khong?");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                showAlert(Alert.AlertType.INFORMATION, "Đã dừng", "Phiên đấu giá đã được dừng thủ công!");
+                showAlert(Alert.AlertType.INFORMATION, "Da dung", "Phien dau gia da duoc dung thu cong!");
             }
         });
     }
 
-    // --- Đăng xuất ---
     @FXML
     public void handleLogout(ActionEvent event) {
+        if (auctionClient != null) auctionClient.close();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/login-view.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1000, 700));
-            stage.setTitle("Đăng nhập hệ thống");
+            stage.setTitle("Dang nhap he thong");
             stage.centerOnScreen();
         } catch (IOException e) {
             e.printStackTrace();

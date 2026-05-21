@@ -1,7 +1,5 @@
 package com.auction.network;
 
-import com.auction.model.core.Auction;
-import com.auction.model.core.Bid;
 import java.io.*;
 import java.net.Socket;
 
@@ -9,11 +7,9 @@ public class ClientHandler implements Runnable {
     private Socket socket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
-    private Auction auction;
 
-    public ClientHandler(Socket socket, Auction auction) {
+    public ClientHandler(Socket socket) {
         this.socket = socket;
-        this.auction = auction;
         try {
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
@@ -27,9 +23,8 @@ public class ClientHandler implements Runnable {
         try {
             while (true) {
                 Object obj = in.readObject();
-                if (obj instanceof Bid) {
-                    Bid newBid = (Bid) obj;
-                    processBid(newBid);
+                if (obj instanceof AuctionMessage) {
+                    processMessage((AuctionMessage) obj);
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
@@ -39,13 +34,18 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void processBid(Bid bid) {
-        synchronized (auction) {
-            try {
-                auction.placeBid(bid);
-                System.out.println("New bid accepted: " + bid.getAmount());
-            } catch (Exception e) {
-                sendToClient("Error: " + e.getMessage());
+    private void processMessage(AuctionMessage message) {
+        if (message == null || message.getType() == null) return;
+
+        switch (message.getType()) {
+            case REGISTER_ADMIN -> AuctionServer.registerAdmin(this);
+            case REGISTER_BIDDER -> AuctionServer.registerBidder(this);
+            case REGISTER_SELLER -> AuctionServer.registerSeller(this);
+            case ITEM_REQUEST -> AuctionServer.handleItemRequest(message.getItem());
+            case APPROVE_ITEM -> AuctionServer.approveItem(message.getItemId());
+            case REJECT_ITEM -> AuctionServer.rejectItem(message.getItemId());
+            default -> {
+                // Other message types are server-to-client only.
             }
         }
     }

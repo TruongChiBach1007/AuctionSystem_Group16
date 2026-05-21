@@ -1,6 +1,15 @@
 package com.auction.controller;
 
-import com.auction.model.items.*;
+import com.auction.model.items.Art;
+import com.auction.model.items.Electronics;
+import com.auction.model.items.Item;
+import com.auction.model.items.ItemStatus;
+import com.auction.model.items.Vehicle;
+import com.auction.network.AuctionClient;
+import com.auction.network.AuctionMessage;
+import com.auction.network.MessageType;
+import com.auction.utils.DatabaseConnection;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -20,259 +29,620 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public class BidderDashboardController {
 
+    // ── Header ──
     @FXML private Label lblUsername;
     @FXML private Label lblBalance;
+    @FXML private Label lblAvatar;
+
+    // ── Search ──
     @FXML private TextField txtSearch;
-    @FXML private ListView<String> searchList;
     @FXML private VBox searchDropdown;
+    @FXML private ListView<String> searchList;
+
+    // ── Banner ──
     @FXML private Label lblWelcome;
+    @FXML private Label lblBannerSub;
 
-    private long balance = 50000;
+    // ── Sidebar trái – category counts ──
+    @FXML private Label lblCountElectronics;
+    @FXML private Label lblCountArt;
+    @FXML private Label lblCountVehicle;
 
-    // Danh sách sản phẩm mẫu
-    private final List<ProductCard> allProducts = new ArrayList<>();
+    // ── Sidebar trái – category lists ──
+    @FXML private VBox listElectronics;
+    @FXML private VBox listArt;
+    @FXML private VBox listVehicle;
 
-    public void setLblUsername(String username) {
-        if (lblUsername != null) {
-            // Kiểm tra nếu tên chưa có chữ "Tên TK: " thì mới thêm vào
-            if (!username.startsWith("Tên tài khoản: ")) {
-                lblUsername.setText("Tên tài khoản: " + username);
-            } else {
-                lblUsername.setText(username);
-            }
-            if (lblWelcome != null) {
-                // Giữ lại câu chào và ghép thêm tên của em vào
-                lblWelcome.setText("Chào mừng " + username + " trở lại! 👋");
-            }
-        }
-    }
+    // ── Sidebar trái – stats ──
+    @FXML private Label lblRunningCount;
+    @FXML private Label lblEndingSoonCount;
+    @FXML private Label lblBidCount;
+
+    // ── Sidebar phải ──
+    @FXML private Label lblRightBalance;
+    @FXML private VBox historyBox;
+
+    // ── Center ──
+    @FXML private FlowPane productFlow;
+
+    // ── State ──
+    private final javafx.collections.ObservableList<Item> approvedItems =
+            FXCollections.observableArrayList();
+    private long balance = 500000;
+    private AuctionClient auctionClient;
+    private String currentUsername = "Bidder";
+
+    // ─────────────────────────────────────────────
+    //  INIT
+    // ─────────────────────────────────────────────
     @FXML
     public void initialize() {
-        updateBalanceLabel();
-        loadProducts();
+        // Load từ DB
+        approvedItems.addAll(
+                DatabaseConnection.getInstance().getItemTable().stream()
+                        .filter(item -> item.getStatus() == ItemStatus.APPROVED)
+                        .toList()
+        );
+
+        updateBalanceLabels();
         setupSearch();
+        renderAll();
+        connectSocket();
     }
 
-    private void loadProducts() {
-        allProducts.add(new ProductCard(
-                "iPhone 15 Pro Max 256GB", "Electronics",
-                35000000, 30000000, "Đang diễn ra", "Còn 2h 30p",
-                "iPhone 15 Pro Max 256GB, màu titan tự nhiên, mới 100%, fullbox.", "#e8f4fd"));
-        allProducts.add(new ProductCard(
-                "Bức Họa Đêm Đầy Sao", "Art",
-                100000000, 80000000, "Sắp đóng", "Còn 5p",
-                "Tranh sơn dầu phong cách Van Gogh, kích thước 80x60cm.", "#fef9e7"));
-        allProducts.add(new ProductCard(
-                "Honda Civic 2024", "Vehicle",
-                750000000, 700000000, "Đang diễn ra", "Còn 1 ngày",
-                "Honda Civic RS 2024, màu đỏ, đã đi 5000km.", "#eafaf1"));
+    // ─────────────────────────────────────────────
+    //  PUBLIC SETTER (gọi từ LoginController)
+    // ─────────────────────────────────────────────
+    public void setLblUsername(String username) {
+        currentUsername = username.replace("Tên tài khoản: ", "")
+                .replace("Ten tai khoan: ", "").trim();
+        lblUsername.setText(currentUsername);
+        lblAvatar.setText(currentUsername.length() > 0
+                ? String.valueOf(currentUsername.charAt(0)).toUpperCase() : "B");
+        lblWelcome.setText("Chào mừng " + currentUsername + " trở lại! 👋");
     }
 
+    // ─────────────────────────────────────────────
+    //  SOCKET
+    // ─────────────────────────────────────────────
+    private void connectSocket() {
+        auctionClient = new AuctionClient();
+        try {
+            auctionClient.connect(MessageType.REGISTER_BIDDER, this::handleSocketMessage);
+        } catch (IOException e) {
+            System.out.println("Bidder cannot connect socket: " + e.getMessage());
+        }
+    }
+
+    private void handleSocketMessage(AuctionMessage message) {
+        if (message == null || message.getType() == null) return;
+        if (message.getType() == MessageType.ITEM_APPROVED && message.getItem() != null) {
+            Platform.runLater(() -> {
+                upsertApprovedItem(message.getItem());
+                renderAll();
+            });
+        }
+    }
+
+    private void upsertApprovedItem(Item item) {
+        approvedItems.removeIf(existing -> existing.getId().equals(item.getId()));
+        approvedItems.add(item);
+    }
+
+    // ─────────────────────────────────────────────
+    //  SEARCH
+    // ─────────────────────────────────────────────
     private void setupSearch() {
         txtSearch.textProperty().addListener((obs, oldVal, newVal) -> {
-            String keyword = newVal.trim().toLowerCase();
+            String keyword = newVal == null ? "" : newVal.trim().toLowerCase();
+
             if (keyword.isEmpty()) {
                 searchDropdown.setVisible(false);
                 searchDropdown.setManaged(false);
+                renderProducts("");
                 return;
             }
 
             List<String> results = new ArrayList<>();
-            for (ProductCard p : allProducts) {
-                if (p.getName().toLowerCase().contains(keyword)) {
-                    results.add(p.getName());
+            for (Item item : approvedItems) {
+                if (item.getName().toLowerCase().contains(keyword)) {
+                    results.add(item.getName());
                 }
             }
-
-            if (results.isEmpty()) {
-                results.add("Không tìm thấy sản phẩm nào");
-            }
+            if (results.isEmpty()) results.add("Không tìm thấy sản phẩm nào");
 
             searchList.setItems(FXCollections.observableArrayList(results));
-            searchList.setPrefHeight(results.size() * 36 + 2);
+            searchList.setPrefHeight(Math.min(results.size(), 6) * 36 + 2.0);
             searchDropdown.setVisible(true);
             searchDropdown.setManaged(true);
+
+            renderProducts(keyword);
         });
 
-        // Click vào item trong dropdown
         searchList.setOnMouseClicked(e -> {
             String selected = searchList.getSelectionModel().getSelectedItem();
             if (selected == null || selected.equals("Không tìm thấy sản phẩm nào")) return;
 
-            for (ProductCard p : allProducts) {
-                if (p.getName().equals(selected)) {
-                    showProductDetail(p);
-                    break;
-                }
-            }
+            approvedItems.stream()
+                    .filter(item -> item.getName().equals(selected))
+                    .findFirst()
+                    .ifPresent(this::openAuctionRoom);
+
             searchDropdown.setVisible(false);
             searchDropdown.setManaged(false);
             txtSearch.clear();
         });
     }
 
-    // Click card 1
-    @FXML
-    public void handleCardClick1() {
-        showProductDetail(allProducts.get(0));
+    // ─────────────────────────────────────────────
+    //  RENDER ALL
+    // ─────────────────────────────────────────────
+    private void renderAll() {
+        renderCategoryLists();
+        renderStats();
+        renderHistory();
+        renderProducts(txtSearch == null ? "" : txtSearch.getText());
+        updateBannerSub();
     }
 
-    // Click card 2
-    @FXML
-    public void handleCardClick2() {
-        showProductDetail(allProducts.get(1));
+    /** Cập nhật số lượng badge + danh sách tên sản phẩm trong accordion */
+    private void renderCategoryLists() {
+        List<Item> electronics = approvedItems.stream().filter(i -> i instanceof Electronics).toList();
+        List<Item> arts        = approvedItems.stream().filter(i -> i instanceof Art).toList();
+        List<Item> vehicles    = approvedItems.stream().filter(i -> i instanceof Vehicle).toList();
+
+        lblCountElectronics.setText(String.valueOf(electronics.size()));
+        lblCountArt.setText(String.valueOf(arts.size()));
+        lblCountVehicle.setText(String.valueOf(vehicles.size()));
+
+        fillCategoryList(listElectronics, electronics);
+        fillCategoryList(listArt, arts);
+        fillCategoryList(listVehicle, vehicles);
     }
 
-    // Popup chi tiết sản phẩm
-    private void showProductDetail(ProductCard product) {
+    private void fillCategoryList(VBox container, List<Item> items) {
+        container.getChildren().clear();
+        if (items.isEmpty()) {
+            Label empty = new Label("  Chưa có sản phẩm");
+            empty.setStyle("-fx-text-fill: #94aac8; -fx-font-size: 11; -fx-padding: 4 8;");
+            container.getChildren().add(empty);
+            return;
+        }
+        items.stream().limit(5).forEach(item -> {
+            Button btn = new Button("• " + item.getName());
+            btn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; "
+                    + "-fx-text-fill: #2c3e50; -fx-padding: 6 8; "
+                    + "-fx-alignment: CENTER_LEFT; -fx-font-size: 12;");
+            btn.setMaxWidth(Double.MAX_VALUE);
+            btn.setOnAction(e -> openAuctionRoom(item));
+            container.getChildren().add(btn);
+        });
+    }
+
+    private void renderStats() {
+        lblRunningCount.setText(String.valueOf(approvedItems.size()));
+        lblEndingSoonCount.setText("0");
+        lblBidCount.setText("0");
+    }
+
+    private void updateBannerSub() {
+        if (lblBannerSub != null) {
+            lblBannerSub.setText("Có " + approvedItems.size() + " phiên đang diễn ra — đừng bỏ lỡ!");
+        }
+    }
+
+    private void renderHistory() {
+        historyBox.getChildren().clear();
+        if (approvedItems.isEmpty()) {
+            Label empty = new Label("Chưa có sản phẩm để theo dõi.");
+            empty.setStyle("-fx-text-fill: #94aac8; -fx-font-size: 12;");
+            historyBox.getChildren().add(empty);
+            return;
+        }
+
+        String[] icons  = {"📈", "⭐", "🔔", "🏷️"};
+        String[] colors = {"#fff3e8", "#e8faf0", "#eff6ff", "#fef9e7"};
+        String[] tColors = {"#e67e22", "#27ae60", "#3b82f6", "#f59e0b"};
+
+        int[] idx = {0};
+        approvedItems.stream().limit(4).forEach(item -> {
+            int i = idx[0] % icons.length;
+
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setStyle("-fx-padding: 4 0; -fx-cursor: hand;");
+
+            StackPane iconBox = new StackPane();
+            iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
+            iconBox.setStyle("-fx-background-color: " + colors[i] + "; -fx-background-radius: 8;");
+            Label icon = new Label(icons[i]);
+            icon.setStyle("-fx-font-size: 14;");
+            iconBox.getChildren().add(icon);
+
+            VBox text = new VBox(2);
+            HBox.setHgrow(text, Priority.ALWAYS);
+            Label name = new Label(item.getName());
+            name.setStyle("-fx-font-weight: bold; -fx-font-size: 12; -fx-text-fill: " + tColors[i] + ";");
+            name.setWrapText(true);
+            Label sub = new Label("Đang theo dõi");
+            sub.setStyle("-fx-text-fill: #94aac8; -fx-font-size: 11;");
+            text.getChildren().addAll(name, sub);
+
+            Label arrow = new Label("›");
+            arrow.setStyle("-fx-text-fill: #94aac8; -fx-font-size: 16;");
+
+            row.getChildren().addAll(iconBox, text, arrow);
+            row.setOnMouseClicked(e -> openAuctionRoom(item));
+            historyBox.getChildren().add(row);
+            idx[0]++;
+        });
+    }
+
+    private void renderProducts(String keyword) {
+        productFlow.getChildren().clear();
+        String normalized = keyword == null ? "" : keyword.trim().toLowerCase();
+
+        approvedItems.stream()
+                .filter(item -> normalized.isEmpty()
+                        || item.getName().toLowerCase().contains(normalized))
+                .forEach(item -> productFlow.getChildren().add(createProductCard(item)));
+    }
+
+    // ─────────────────────────────────────────────
+    //  PRODUCT CARD (UI đẹp giống FXML tĩnh)
+    // ─────────────────────────────────────────────
+    private VBox createProductCard(Item item) {
+        VBox card = new VBox(0);
+        card.setPrefWidth(260);
+        card.setStyle("-fx-background-color: white; -fx-background-radius: 14; -fx-cursor: hand; "
+                + "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 3);");
+
+        // Màu nền ảnh theo category
+        String fillColor;
+        String icon;
+        if (item instanceof Electronics) {
+            fillColor = "#dbeafe"; icon = "💻";
+        } else if (item instanceof Art) {
+            fillColor = "#fef9c3"; icon = "🎨";
+        } else if (item instanceof Vehicle) {
+            fillColor = "#dcfce7"; icon = "🚗";
+        } else {
+            fillColor = "#f1f5f9"; icon = "📦";
+        }
+
+        // Image area
+        StackPane imagePane = new StackPane();
+        Rectangle bg = new Rectangle(260, 150);
+        bg.setFill(Color.web(fillColor));
+        bg.setArcWidth(14); bg.setArcHeight(14);
+        Label imgIcon = new Label(icon);
+        imgIcon.setStyle("-fx-font-size: 36; -fx-opacity: 0.35;");
+        imagePane.getChildren().addAll(bg, imgIcon);
+
+        // Badge "Hot" / "Mới"
+        Label badge = new Label("Live");
+        badge.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; "
+                + "-fx-font-size: 10; -fx-font-weight: bold; "
+                + "-fx-background-radius: 6; -fx-padding: 3 8;");
+        StackPane.setAlignment(badge, Pos.TOP_LEFT);
+        badge.setTranslateX(10); badge.setTranslateY(10);
+        imagePane.getChildren().add(badge);
+
+        // Body
+        VBox body = new VBox(6);
+        body.setStyle("-fx-padding: 14 14 14 14;");
+
+        Label name = new Label(item.getName());
+        name.setWrapText(true);
+        name.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e3154;");
+
+        Label price = new Label(String.format("%,.0f VNĐ", item.getCurrentPrice()));
+        price.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold; -fx-font-size: 15;");
+
+        HBox meta = new HBox(10);
+        meta.setAlignment(Pos.CENTER_LEFT);
+        HBox statusBox = new HBox(5);
+        statusBox.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4);
+        dot.setStyle("-fx-fill: #27ae60;");
+        Label statusLbl = new Label("Đang diễn ra");
+        statusLbl.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 11;");
+        statusBox.getChildren().addAll(dot, statusLbl);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Label seller = new Label("🔨 " + safeText(item.getSellerName()));
+        seller.setStyle("-fx-font-size: 11; -fx-text-fill: #94aac8;");
+        meta.getChildren().addAll(statusBox, spacer, seller);
+
+        body.getChildren().addAll(name, price, meta);
+        card.getChildren().addAll(imagePane, body);
+        card.setOnMouseClicked(e -> showProductDetail(item));
+        return card;
+    }
+
+    // ─────────────────────────────────────────────
+    //  POPUP CHI TIẾT SẢN PHẨM (UI đẹp từ v2)
+    // ─────────────────────────────────────────────
+    private void showProductDetail(Item item) {
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
         popup.setTitle("Thông tin sản phẩm");
 
         VBox root = new VBox(0);
         root.setPrefWidth(450);
-        root.getStyleClass().add("popup-vbox");
-        // Đảm bảo link file CSS
-        root.getStylesheets().add(getClass().getResource("/com/auction/css/styles.css").toExternalForm());
 
-        // --- 1. Header Xanh (Đồng bộ banner) ---
+        // Header gradient
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15, 20, 15, 20));
         header.setStyle("-fx-background-color: linear-gradient(to right, #2563eb, #3b82f6);");
 
-        Label lblTitle = new Label(product.getName().toUpperCase());
+        Label lblTitle = new Label(item.getName().toUpperCase());
         lblTitle.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 15;");
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         Button btnClose = new Button("✕");
-        btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+        btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: white; "
+                + "-fx-font-weight: bold; -fx-cursor: hand;");
         btnClose.setOnAction(e -> popup.close());
-
         header.getChildren().addAll(lblTitle, spacer, btnClose);
 
-        // --- 2. Ảnh đại diện (Vùng màu) ---
+        // Image placeholder
+        String fillColor = item instanceof Electronics ? "#dbeafe"
+                : item instanceof Art ? "#fef9c3"
+                : item instanceof Vehicle ? "#dcfce7" : "#f1f5f9";
         Rectangle imgPlaceholder = new Rectangle(450, 160);
-        imgPlaceholder.setFill(Color.web(product.getCardColor()));
+        imgPlaceholder.setFill(Color.web(fillColor));
 
-        // --- 3. Vùng nội dung ---
+        // Body
         VBox body = new VBox(15);
         body.setPadding(new Insets(20));
 
-        // Các dòng thông tin dùng hàm bổ trợ bên dưới
         VBox infoBox = new VBox(0);
         infoBox.getChildren().addAll(
-                createInfoRow("📦 Danh mục", product.getCategory()),
-                createInfoRow("💰 Giá khởi điểm", String.format("%,.0f VNĐ", product.getStartingPrice())),
-                createInfoRow("📈 Giá hiện tại", String.format("%,.0f VNĐ", product.getCurrentPrice())),
-                createInfoRow("⏰ Thời gian còn", product.getTimeLeft())
+                createInfoRow("📦 Danh mục", item.getCategory()),
+                createInfoRow("💰 Giá hiện tại",
+                        String.format("%,.0f VNĐ", item.getCurrentPrice())),
+                createInfoRow("👤 Người bán", safeText(item.getSellerName())),
+                createInfoRow("📋 Mô tả", safeText(item.getDescription()))
         );
 
-        Label lblDesc = new Label(product.getDescription());
-        lblDesc.setWrapText(true);
-        lblDesc.setStyle("-fx-text-fill: #6b7280; -fx-font-style: italic; -fx-padding: 5 0;");
+        // Extra info theo loại
+        if (item instanceof Electronics e) {
+            infoBox.getChildren().add(createInfoRow("🛡️ Bảo hành", e.getWarrantyMonths() + " tháng"));
+        } else if (item instanceof Art a) {
+            infoBox.getChildren().add(createInfoRow("🎨 Nghệ sĩ", safeText(a.getArtist())));
+        } else if (item instanceof Vehicle v) {
+            infoBox.getChildren().add(createInfoRow("🚗 Dung tích", v.getEngineCapacity() + "cc"));
+        }
 
-        // Nút tham gia (Dùng lại class btn-success xịn của em)
-        Button btnJoin = new Button("🚀 THAM GIA ĐẤU GIÁ NGAY");
-        btnJoin.getStyleClass().add("btn-success"); // Class xanh lá có đổ bóng
+        Button btnJoin = new Button("🚀  THAM GIA ĐẤU GIÁ NGAY");
         btnJoin.setMaxWidth(Double.MAX_VALUE);
         btnJoin.setPadding(new Insets(12));
+        btnJoin.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; "
+                + "-fx-font-weight: bold; -fx-font-size: 13; -fx-background-radius: 10; "
+                + "-fx-cursor: hand; "
+                + "-fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 10, 0, 0, 3);");
         btnJoin.setOnAction(e -> {
             popup.close();
-            openAuctionRoom();
+            openAuctionRoom(item);
         });
 
-        body.getChildren().addAll(infoBox, lblDesc, btnJoin);
+        body.getChildren().addAll(infoBox, btnJoin);
         root.getChildren().addAll(header, imgPlaceholder, body);
 
         popup.setScene(new Scene(root));
         popup.showAndWait();
     }
 
-    // Hàm bổ trợ để tạo dòng thông tin đẹp
     private HBox createInfoRow(String key, String value) {
         HBox row = new HBox();
-        row.getStyleClass().add("info-item-row");
         row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(8, 12, 8, 12));
+        row.setStyle("-fx-border-color: transparent transparent #f0f4ff transparent; "
+                + "-fx-border-width: 0 0 1 0;");
 
         Label lblK = new Label(key);
-        lblK.getStyleClass().add("info-item-key");
-        lblK.setPrefWidth(150);
+        lblK.setPrefWidth(160);
+        lblK.setStyle("-fx-font-weight: bold; -fx-text-fill: #4a6080; -fx-font-size: 12;");
 
         Label lblV = new Label(value);
-        lblV.setStyle("-fx-text-fill: #374151; -fx-font-size: 13px;");
+        lblV.setWrapText(true);
+        lblV.setStyle("-fx-text-fill: #374151; -fx-font-size: 13;");
 
         row.getChildren().addAll(lblK, lblV);
         return row;
     }
 
-    private HBox makeRow(String key, String value) {
-        HBox row = new HBox(10);
-        row.setAlignment(Pos.CENTER_LEFT);
-        Label lblKey = new Label(key);
-        lblKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-min-width: 160;");
-        Label lblVal = new Label(value);
-        lblVal.setStyle("-fx-text-fill: #555; -fx-font-size: 13;");
-        row.getChildren().addAll(lblKey, lblVal);
-        return row;
-    }
-
-    private void openAuctionRoom() {
+    // ─────────────────────────────────────────────
+    //  MỞ PHÒNG ĐẤU GIÁ
+    // ─────────────────────────────────────────────
+    private void openAuctionRoom(Item item) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/auction-room.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/auction/auction-room.fxml"));
             Parent root = loader.load();
             AuctionRoomController controller = loader.getController();
-            controller.setCurrentUser(lblUsername.getText().replace("Tên tài khoản: ", ""));
+            controller.setCurrentUser(currentUsername);
+            controller.setAuctionItem(item);
             Stage stage = (Stage) lblUsername.getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Phòng Đấu Giá Trực Tiếp - Live!");
+            stage.setTitle("Phòng đấu giá - " + item.getName());
             stage.centerOnScreen();
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    // ─────────────────────────────────────────────
+    //  FXML ACTIONS
+    // ─────────────────────────────────────────────
     @FXML
-    public void handleJoinAuction(ActionEvent event) { openAuctionRoom(); }
+    public void handleAddProduct(ActionEvent event) {
+        showAddProductDialog();
+    }
 
+    /** Popup đăng sản phẩm – giữ nguyên UI đẹp từ v2 */
+    private void showAddProductDialog() {
+        Stage popup = new Stage();
+        popup.setTitle("Đăng sản phẩm đấu giá");
+        popup.initModality(Modality.APPLICATION_MODAL);
+
+        VBox root = new VBox(0);
+        root.setPrefWidth(480);
+        root.setStyle("-fx-background-color: #f0f4ff; -fx-background-radius: 16;");
+
+        // Header
+        VBox header = new VBox(4);
+        header.setPadding(new Insets(22, 28, 20, 28));
+        header.setStyle("-fx-background-color: linear-gradient(to right, #2563eb, #3b82f6); "
+                + "-fx-background-radius: 16 16 0 0;");
+        Label lblSub = new Label("ĐĂNG SẢN PHẨM MỚI");
+        lblSub.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.7);");
+        HBox titleRow = new HBox(10);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        StackPane iconBox = new StackPane();
+        iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
+        iconBox.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8;");
+        iconBox.getChildren().add(new Label("🏷️"));
+        Label lblTitle = new Label("Thông tin sản phẩm đấu giá");
+        lblTitle.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;");
+        titleRow.getChildren().addAll(iconBox, lblTitle);
+        header.getChildren().addAll(lblSub, titleRow);
+
+        // Body
+        String inputStyle = "-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10 14; -fx-font-size: 13;";
+        String labelStyle = "-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;";
+
+        VBox body = new VBox(16);
+        body.setPadding(new Insets(24, 28, 20, 28));
+        body.setStyle("-fx-background-color: white;");
+
+        // Danh mục
+        ComboBox<String> cmbCategory = new ComboBox<>(
+                FXCollections.observableArrayList("Electronics", "Art", "Vehicle"));
+        cmbCategory.setPromptText("Chọn danh mục...");
+        cmbCategory.setMaxWidth(Double.MAX_VALUE);
+        cmbCategory.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; -fx-font-size: 13;");
+
+        // Tên
+        TextField txtName = new TextField();
+        txtName.setPromptText("Nhập tên sản phẩm...");
+        txtName.setStyle(inputStyle);
+
+        // Mô tả
+        TextArea txtDesc = new TextArea();
+        txtDesc.setPromptText("Nhập mô tả sản phẩm...");
+        txtDesc.setPrefHeight(90);
+        txtDesc.setWrapText(true);
+        txtDesc.setStyle(inputStyle);
+
+        // Giá
+        HBox priceRow = new HBox(0);
+        priceRow.setAlignment(Pos.CENTER_LEFT);
+        Label badgeVnd = new Label("  VNĐ  ");
+        badgeVnd.setStyle("-fx-background-color: #dbeafe; -fx-text-fill: #1976D2; "
+                + "-fx-font-weight: bold; -fx-font-size: 12; "
+                + "-fx-background-radius: 10 0 0 10; -fx-border-color: #dde3f0; "
+                + "-fx-border-width: 1 0 1 1; -fx-border-radius: 10 0 0 10; -fx-padding: 10 10;");
+        TextField txtPrice = new TextField();
+        txtPrice.setPromptText("VD: 1,000,000");
+        txtPrice.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; "
+                + "-fx-border-radius: 0 10 10 0; -fx-background-radius: 0 10 10 0; "
+                + "-fx-padding: 10 14; -fx-font-size: 13;");
+        HBox.setHgrow(txtPrice, Priority.ALWAYS);
+        priceRow.getChildren().addAll(badgeVnd, txtPrice);
+
+        // URL ảnh
+        TextField txtImageUrl = new TextField();
+        txtImageUrl.setPromptText("URL ảnh sản phẩm (tùy chọn)");
+        txtImageUrl.setStyle(inputStyle);
+
+        // Field phụ
+        VBox boxExtra = new VBox(6);
+        boxExtra.setVisible(false); boxExtra.setManaged(false);
+        Label lblExtra = new Label("");
+        lblExtra.setStyle(labelStyle);
+        TextField txtExtra = new TextField();
+        txtExtra.setStyle(inputStyle);
+        boxExtra.getChildren().addAll(lblExtra, txtExtra);
+
+        cmbCategory.setOnAction(e -> {
+            String cat = cmbCategory.getValue();
+            if (cat == null) return;
+            switch (cat) {
+                case "Electronics" -> { lblExtra.setText("🛡️  Bảo hành (tháng):"); txtExtra.setPromptText("VD: 12"); }
+                case "Art"         -> { lblExtra.setText("🎨  Tên nghệ sĩ:");      txtExtra.setPromptText("VD: Van Gogh"); }
+                case "Vehicle"     -> { lblExtra.setText("🚗  Dung tích (cc):");   txtExtra.setPromptText("VD: 1500"); }
+            }
+            boxExtra.setVisible(true); boxExtra.setManaged(true);
+        });
+
+        body.getChildren().addAll(
+                makeLabeledField("📂  Danh mục *", cmbCategory),
+                makeLabeledField("🏷️  Tên sản phẩm *", txtName),
+                makeLabeledField("📝  Mô tả", txtDesc),
+                makeLabeledField("💰  Giá khởi điểm *", priceRow),
+                makeLabeledField("🖼️  URL ảnh", txtImageUrl),
+                boxExtra
+        );
+
+        // Footer
+        HBox footer = makeFooter(popup, () -> {
+            Item item = buildItemFromForm(
+                    cmbCategory.getValue(), txtName.getText(),
+                    txtDesc.getText(), txtPrice.getText(),
+                    txtImageUrl.getText(), txtExtra.getText());
+            if (item == null) return;
+            item.setSellerName(currentUsername);
+            if (auctionClient != null)
+                auctionClient.send(new AuctionMessage(MessageType.ITEM_REQUEST, item));
+            showAlert(Alert.AlertType.INFORMATION, "Đã gửi",
+                    "Sản phẩm \"" + item.getName() + "\" đã gửi Admin duyệt.");
+            popup.close();
+        }, "🏷️  Đăng sản phẩm");
+
+        root.getChildren().addAll(header, body, new Separator(), footer);
+        popup.setScene(new Scene(root));
+        popup.showAndWait();
+    }
+
+    /** Popup nạp tiền – giữ nguyên UI đẹp từ v2 */
     @FXML
     public void handleDeposit(ActionEvent event) {
         Stage popup = new Stage();
         popup.setTitle("Nạp tiền");
         popup.initModality(Modality.APPLICATION_MODAL);
 
-        // ── ROOT ──
         VBox root = new VBox(0);
         root.setPrefWidth(420);
         root.setStyle("-fx-background-color: #f0f4ff; -fx-background-radius: 16;");
 
-        // ── HEADER ──
+        // Header
         VBox header = new VBox(4);
         header.setPadding(new Insets(22, 28, 20, 28));
-        header.setStyle("-fx-background-color: linear-gradient(to right, #2563eb, #3b82f6); -fx-background-radius: 16 16 0 0;");
-
+        header.setStyle("-fx-background-color: linear-gradient(to right, #2563eb, #3b82f6); "
+                + "-fx-background-radius: 16 16 0 0;");
         Label lblSub = new Label("THANH TOÁN AN TOÀN");
         lblSub.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.7);");
-
         HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         StackPane iconBox = new StackPane();
         iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
         iconBox.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8;");
-        Label iconLabel = new Label("🏦");
-        iconLabel.setStyle("-fx-font-size: 15;");
-        iconBox.getChildren().add(iconLabel);
+        iconBox.getChildren().add(new Label("🏦"));
         Label lblTitle = new Label("Nạp tiền qua VNPay");
         lblTitle.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;");
         titleRow.getChildren().addAll(iconBox, lblTitle);
         header.getChildren().addAll(lblSub, titleRow);
 
-        // ── BODY ──
+        // Body
         VBox body = new VBox(16);
         body.setPadding(new Insets(24, 28, 20, 28));
         body.setStyle("-fx-background-color: white;");
@@ -281,336 +651,184 @@ public class BidderDashboardController {
         HBox balanceBox = new HBox(10);
         balanceBox.setAlignment(Pos.CENTER_LEFT);
         balanceBox.setPadding(new Insets(12, 16, 12, 16));
-        balanceBox.setStyle("-fx-background-color: #eff6ff; -fx-background-radius: 10; -fx-border-color: #dbeafe; -fx-border-radius: 10;");
-        Label icoBalance = new Label("💰");
-        icoBalance.setStyle("-fx-font-size: 16;");
+        balanceBox.setStyle("-fx-background-color: #eff6ff; -fx-background-radius: 10; "
+                + "-fx-border-color: #dbeafe; -fx-border-radius: 10;");
         VBox balanceText = new VBox(2);
-        Label lblBalanceTitle = new Label("Số dư hiện tại");
-        lblBalanceTitle.setStyle("-fx-font-size: 11; -fx-text-fill: #94aac8;");
-        Label lblBalanceVal = new Label(String.format("%,d VNĐ", balance));
-        lblBalanceVal.setStyle("-fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: #1976D2;");
-        balanceText.getChildren().addAll(lblBalanceTitle, lblBalanceVal);
-        balanceBox.getChildren().addAll(icoBalance, balanceText);
+        Label lblBT = new Label("Số dư hiện tại");
+        lblBT.setStyle("-fx-font-size: 11; -fx-text-fill: #94aac8;");
+        Label lblBV = new Label(String.format("%,d VNĐ", balance));
+        lblBV.setStyle("-fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: #1976D2;");
+        balanceText.getChildren().addAll(lblBT, lblBV);
+        balanceBox.getChildren().addAll(new Label("💰"), balanceText);
 
-        // Gợi ý nhanh
-        VBox boxQuick = new VBox(8);
-        HBox lblQuickRow = new HBox(6);
-        lblQuickRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoQuick = new Label("⚡"); icoQuick.setStyle("-fx-font-size: 12;");
-        Label lblQuick = new Label("Chọn nhanh");
-        lblQuick.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;");
-        lblQuickRow.getChildren().addAll(icoQuick, lblQuick);
-
+        // Input số tiền
+        HBox inputRow = new HBox(0);
+        inputRow.setAlignment(Pos.CENTER_LEFT);
+        Label badgeVnd = new Label("  VNĐ  ");
+        badgeVnd.setStyle("-fx-background-color: #dbeafe; -fx-text-fill: #1976D2; "
+                + "-fx-font-weight: bold; -fx-font-size: 12; "
+                + "-fx-background-radius: 10 0 0 10; -fx-border-color: #dde3f0; "
+                + "-fx-border-width: 1 0 1 1; -fx-border-radius: 10 0 0 10; -fx-padding: 10 10;");
         TextField txtAmount = new TextField();
         txtAmount.setPromptText("Nhập số tiền muốn nạp...");
-        txtAmount.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10 14; -fx-font-size: 13;");
+        txtAmount.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; "
+                + "-fx-border-radius: 0 10 10 0; -fx-background-radius: 0 10 10 0; "
+                + "-fx-padding: 10 14; -fx-font-size: 13;");
+        HBox.setHgrow(txtAmount, Priority.ALWAYS);
+        inputRow.getChildren().addAll(badgeVnd, txtAmount);
 
+        // Gợi ý nhanh
         HBox quickBtns = new HBox(8);
-        String[] amounts = {"50,000", "100,000", "500,000", "1,000,000"};
-        for (String amt : amounts) {
-            Button btn = new Button(amt);
-            btn.setStyle("-fx-background-color: #eff6ff; -fx-text-fill: #1976D2; " +
-                    "-fx-font-weight: bold; -fx-font-size: 11; " +
-                    "-fx-background-radius: 8; -fx-border-color: #dbeafe; -fx-border-radius: 8; " +
-                    "-fx-padding: 6 10; -fx-cursor: hand;");
-            btn.setOnAction(e -> txtAmount.setText(amt.replace(",", "")));
+        for (String amt : new String[]{"50000", "100000", "500000", "1000000"}) {
+            Button btn = new Button(String.format("%,d", Long.parseLong(amt)));
+            btn.setStyle("-fx-background-color: #eff6ff; -fx-text-fill: #1976D2; "
+                    + "-fx-font-weight: bold; -fx-font-size: 11; "
+                    + "-fx-background-radius: 8; -fx-border-color: #dbeafe; -fx-border-radius: 8; "
+                    + "-fx-padding: 6 10; -fx-cursor: hand;");
+            btn.setOnAction(e -> txtAmount.setText(amt));
             HBox.setHgrow(btn, Priority.ALWAYS);
             btn.setMaxWidth(Double.MAX_VALUE);
             quickBtns.getChildren().add(btn);
         }
 
-        boxQuick.getChildren().addAll(lblQuickRow, quickBtns);
-
-        // Input số tiền
-        VBox boxAmount = new VBox(6);
-        HBox lblAmountRow = new HBox(6);
-        lblAmountRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoAmt = new Label("💵"); icoAmt.setStyle("-fx-font-size: 12;");
-        Label lblAmt = new Label("Số tiền nạp");
-        lblAmt.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;");
-        Label star = new Label("*"); star.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
-        lblAmountRow.getChildren().addAll(icoAmt, lblAmt, star);
-
-        HBox inputRow = new HBox(0);
-        inputRow.setAlignment(Pos.CENTER_LEFT);
-        Label badgeVnd = new Label("  VNĐ  ");
-        badgeVnd.setStyle("-fx-background-color: #dbeafe; -fx-text-fill: #1976D2; " +
-                "-fx-font-weight: bold; -fx-font-size: 12; " +
-                "-fx-background-radius: 10 0 0 10; " +
-                "-fx-border-color: #dde3f0; -fx-border-width: 1 0 1 1; " +
-                "-fx-border-radius: 10 0 0 10; -fx-padding: 10 10;");
-        txtAmount.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 0 10 10 0; -fx-background-radius: 0 10 10 0; " +
-                "-fx-padding: 10 14; -fx-font-size: 13;");
-        HBox.setHgrow(txtAmount, Priority.ALWAYS);
-        inputRow.getChildren().addAll(badgeVnd, txtAmount);
-
-        // Note
         Label lblNote = new Label("ℹ️  Yêu cầu sẽ được Admin xác nhận trong vòng 5–15 phút.");
         lblNote.setStyle("-fx-font-size: 11; -fx-text-fill: #94aac8;");
         lblNote.setWrapText(true);
 
-        boxAmount.getChildren().addAll(lblAmountRow, inputRow, lblNote);
+        body.getChildren().addAll(balanceBox, quickBtns, inputRow, lblNote);
 
-        body.getChildren().addAll(balanceBox, boxQuick, boxAmount);
-
-        // ── SEPARATOR ──
-        Separator sep = new Separator();
-        sep.setStyle("-fx-background-color: #e8edf5;");
-
-        // ── FOOTER ──
-        HBox footer = new HBox(12);
-        footer.setAlignment(Pos.CENTER_RIGHT);
-        footer.setPadding(new Insets(16, 28, 16, 28));
-        footer.setStyle("-fx-background-color: #f8faff; -fx-background-radius: 0 0 16 16;");
-
-        Button btnCancel = new Button("✕  Huỷ");
-        btnCancel.setStyle("-fx-background-color: white; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 10; -fx-background-radius: 10; " +
-                "-fx-text-fill: #4a6080; -fx-font-size: 13; -fx-font-weight: bold; " +
-                "-fx-padding: 10 22; -fx-cursor: hand;");
-        btnCancel.setOnAction(e -> popup.close());
-
-        Button btnConfirm = new Button("🏦  Xác nhận nạp tiền");
-        btnConfirm.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
-                "-fx-font-weight: bold; -fx-font-size: 13; " +
-                "-fx-background-radius: 10; -fx-padding: 10 22; -fx-cursor: hand; " +
-                "-fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 10, 0, 0, 3);");
-        btnConfirm.setOnAction(e -> {
+        // Footer
+        HBox footer = makeFooter(popup, () -> {
             String input = txtAmount.getText().trim().replace(",", "");
-            if (input.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập số tiền!"); return;
-            }
+            if (input.isEmpty()) { showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập số tiền!"); return; }
             try {
                 long amount = Long.parseLong(input);
                 if (amount <= 0) { showAlert(Alert.AlertType.ERROR, "Lỗi", "Số tiền phải lớn hơn 0!"); return; }
                 showAlert(Alert.AlertType.INFORMATION, "Đã gửi yêu cầu",
-                        String.format("Yêu cầu nạp %,d VNĐ đã được ghi nhận!\nVui lòng chờ Admin xác nhận.", amount));
+                        String.format("Yêu cầu nạp %,d VNĐ đã ghi nhận!\nVui lòng chờ Admin xác nhận.", amount));
                 popup.close();
             } catch (NumberFormatException ex) {
                 showAlert(Alert.AlertType.ERROR, "Lỗi", "Số tiền không hợp lệ!");
             }
-        });
+        }, "🏦  Xác nhận nạp tiền");
 
-        footer.getChildren().addAll(btnCancel, btnConfirm);
-
-        root.getChildren().addAll(header, body, sep, footer);
-
-        Scene scene = new Scene(root);
-        scene.setFill(Color.TRANSPARENT);
-        popup.setScene(scene);
-        popup.showAndWait();
-    }
-
-    @FXML
-    public void handleAddProduct(ActionEvent event) {
-        Stage popup = new Stage();
-        popup.setTitle("Đăng sản phẩm đấu giá");
-        popup.initModality(Modality.APPLICATION_MODAL);
-
-        // ── ROOT ──
-        VBox root = new VBox(0);
-        root.setPrefWidth(480);
-        root.setStyle("-fx-background-color: #f0f4ff; -fx-background-radius: 16;");
-
-        // ── HEADER gradient ──
-        VBox header = new VBox(4);
-        header.setPadding(new Insets(22, 28, 20, 28));
-        header.setStyle("-fx-background-color: linear-gradient(to right, #2563eb, #3b82f6); -fx-background-radius: 16 16 0 0;");
-
-        Label lblSub = new Label("ĐĂNG SẢN PHẨM MỚI");
-        lblSub.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.7);");
-
-        HBox titleRow = new HBox(10);
-        titleRow.setAlignment(Pos.CENTER_LEFT);
-        StackPane iconBox = new StackPane();
-        iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
-        iconBox.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8;");
-        Label iconLabel = new Label("🏷️");
-        iconLabel.setStyle("-fx-font-size: 15;");
-        iconBox.getChildren().add(iconLabel);
-        Label lblTitle = new Label("Thông tin sản phẩm đấu giá");
-        lblTitle.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;");
-        titleRow.getChildren().addAll(iconBox, lblTitle);
-        header.getChildren().addAll(lblSub, titleRow);
-
-        // ── BODY ──
-        VBox body = new VBox(16);
-        body.setPadding(new Insets(24, 28, 20, 28));
-        body.setStyle("-fx-background-color: white;");
-
-        // Style dùng lại
-        String inputStyle = "-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10 14; -fx-font-size: 13;";
-        String labelStyle = "-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;";
-
-        // Danh mục
-        VBox boxCat = new VBox(6);
-        HBox lblCatRow = new HBox(6);
-        lblCatRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoCat = new Label("📂"); icoCat.setStyle("-fx-font-size: 12;");
-        Label lblCat = new Label("Danh mục"); lblCat.setStyle(labelStyle);
-        Label starCat = new Label("*"); starCat.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
-        lblCatRow.getChildren().addAll(icoCat, lblCat, starCat);
-        ComboBox<String> cmbCategory = new ComboBox<>();
-        cmbCategory.setItems(FXCollections.observableArrayList("Electronics", "Art", "Vehicle"));
-        cmbCategory.setPromptText("Chọn danh mục...");
-        cmbCategory.setMaxWidth(Double.MAX_VALUE);
-        cmbCategory.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 10; -fx-background-radius: 10; -fx-font-size: 13;");
-        boxCat.getChildren().addAll(lblCatRow, cmbCategory);
-
-        // Tên sản phẩm
-        VBox boxName = new VBox(6);
-        HBox lblNameRow = new HBox(6);
-        lblNameRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoName = new Label("🏷️"); icoName.setStyle("-fx-font-size: 12;");
-        Label lblName = new Label("Tên sản phẩm"); lblName.setStyle(labelStyle);
-        Label starName = new Label("*"); starName.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
-        lblNameRow.getChildren().addAll(icoName, lblName, starName);
-        TextField txtName = new TextField();
-        txtName.setPromptText("Nhập tên sản phẩm...");
-        txtName.setStyle(inputStyle);
-        boxName.getChildren().addAll(lblNameRow, txtName);
-
-        // Mô tả
-        VBox boxDesc = new VBox(6);
-        HBox lblDescRow = new HBox(6);
-        lblDescRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoDesc = new Label("📝"); icoDesc.setStyle("-fx-font-size: 12;");
-        Label lblDesc = new Label("Mô tả"); lblDesc.setStyle(labelStyle);
-        lblDescRow.getChildren().addAll(icoDesc, lblDesc);
-        TextArea txtDesc = new TextArea();
-        txtDesc.setPromptText("Nhập mô tả sản phẩm...");
-        txtDesc.setPrefHeight(90);
-        txtDesc.setWrapText(true);
-        txtDesc.setStyle(inputStyle);
-        boxDesc.getChildren().addAll(lblDescRow, txtDesc);
-
-        // Giá khởi điểm
-        VBox boxPrice = new VBox(6);
-        HBox lblPriceRow = new HBox(6);
-        lblPriceRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoPrice = new Label("💰"); icoPrice.setStyle("-fx-font-size: 12;");
-        Label lblPrice = new Label("Giá khởi điểm"); lblPrice.setStyle(labelStyle);
-        Label starPrice = new Label("*"); starPrice.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
-        lblPriceRow.getChildren().addAll(icoPrice, lblPrice, starPrice);
-        HBox priceRow = new HBox(0);
-        priceRow.setAlignment(Pos.CENTER_LEFT);
-        Label badgeVnd = new Label("  VNĐ  ");
-        badgeVnd.setStyle("-fx-background-color: #dbeafe; -fx-text-fill: #1976D2; " +
-                "-fx-font-weight: bold; -fx-font-size: 12; " +
-                "-fx-background-radius: 10 0 0 10; " +
-                "-fx-border-color: #dde3f0; -fx-border-width: 1 0 1 1; " +
-                "-fx-border-radius: 10 0 0 10; -fx-padding: 10 10;");
-        TextField txtPrice = new TextField();
-        txtPrice.setPromptText("VD: 1,000,000");
-        txtPrice.setStyle("-fx-background-color: #f5f7fc; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 0 10 10 0; -fx-background-radius: 0 10 10 0; " +
-                "-fx-padding: 10 14; -fx-font-size: 13;");
-        HBox.setHgrow(txtPrice, Priority.ALWAYS);
-        priceRow.getChildren().addAll(badgeVnd, txtPrice);
-        boxPrice.getChildren().addAll(lblPriceRow, priceRow);
-
-        // Field phụ theo danh mục
-        VBox boxExtra = new VBox(6);
-        boxExtra.setVisible(false);
-        boxExtra.setManaged(false);
-        HBox lblExtraRow = new HBox(6);
-        lblExtraRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoExtra = new Label("🔧"); icoExtra.setStyle("-fx-font-size: 12;");
-        Label lblExtra = new Label(""); lblExtra.setStyle(labelStyle);
-        lblExtraRow.getChildren().addAll(icoExtra, lblExtra);
-        TextField txtExtra = new TextField();
-        txtExtra.setStyle(inputStyle);
-        boxExtra.getChildren().addAll(lblExtraRow, txtExtra);
-
-        cmbCategory.setOnAction(e -> {
-            String cat = cmbCategory.getValue();
-            if (cat == null) return;
-            switch (cat) {
-                case "Electronics":
-                    icoExtra.setText("🛡️"); lblExtra.setText("Bảo hành (tháng):");
-                    txtExtra.setPromptText("VD: 12"); break;
-                case "Art":
-                    icoExtra.setText("🎨"); lblExtra.setText("Tên nghệ sĩ:");
-                    txtExtra.setPromptText("VD: Van Gogh"); break;
-                case "Vehicle":
-                    icoExtra.setText("📅"); lblExtra.setText("Năm sản xuất:");
-                    txtExtra.setPromptText("VD: 2024"); break;
-            }
-            boxExtra.setVisible(true);
-            boxExtra.setManaged(true);
-        });
-
-        body.getChildren().addAll(boxCat, boxName, boxDesc, boxPrice, boxExtra);
-
-        // ── SEPARATOR ──
-        Separator sep = new Separator();
-        sep.setStyle("-fx-background-color: #e8edf5;");
-
-        // ── FOOTER ──
-        HBox footer = new HBox(12);
-        footer.setAlignment(Pos.CENTER_RIGHT);
-        footer.setPadding(new Insets(16, 28, 16, 28));
-        footer.setStyle("-fx-background-color: #f8faff; -fx-background-radius: 0 0 16 16;");
-
-        Button btnCancel = new Button("✕  Huỷ");
-        btnCancel.setStyle("-fx-background-color: white; -fx-border-color: #dde3f0; " +
-                "-fx-border-radius: 10; -fx-background-radius: 10; " +
-                "-fx-text-fill: #4a6080; -fx-font-size: 13; -fx-font-weight: bold; " +
-                "-fx-padding: 10 22; -fx-cursor: hand;");
-        btnCancel.setOnAction(e -> popup.close());
-
-        Button btnSave = new Button("🏷️  Đăng sản phẩm");
-        btnSave.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
-                "-fx-font-weight: bold; -fx-font-size: 13; " +
-                "-fx-background-radius: 10; -fx-padding: 10 22; -fx-cursor: hand; " +
-                "-fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 10, 0, 0, 3);");
-        btnSave.setOnAction(e -> {
-            if (txtName.getText().isEmpty() || cmbCategory.getValue() == null || txtPrice.getText().isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc!"); return;
-            }
-            try {
-                double startPrice = Double.parseDouble(txtPrice.getText().trim().replace(",", ""));
-                showAlert(Alert.AlertType.INFORMATION, "Thành công",
-                        "Đã đăng sản phẩm \"" + txtName.getText().trim() + "\"!\nChờ Admin duyệt.");
-                popup.close();
-            } catch (NumberFormatException ex) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá tiền phải là số!");
-            }
-        });
-
-        footer.getChildren().addAll(btnCancel, btnSave);
-
-        root.getChildren().addAll(header, body, sep, footer);
-
-        Scene scene = new Scene(root);
-        scene.setFill(Color.TRANSPARENT);
-        popup.setScene(scene);
+        root.getChildren().addAll(header, body, new Separator(), footer);
+        popup.setScene(new Scene(root));
         popup.showAndWait();
     }
 
     @FXML
     public void handleLogout(ActionEvent event) {
+        if (auctionClient != null) auctionClient.close();
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/login-view.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/auction/login-view.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1000, 700));
             stage.setTitle("Đăng nhập hệ thống");
             stage.centerOnScreen();
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void updateBalanceLabel() {
-        lblBalance.setText(String.format("Số dư: %,d VNĐ", balance));
+    // ─────────────────────────────────────────────
+    //  HELPERS
+    // ─────────────────────────────────────────────
+
+    /** Tạo footer popup chuẩn: nút Huỷ + nút confirm */
+    private HBox makeFooter(Stage popup, Runnable onConfirm, String confirmText) {
+        HBox footer = new HBox(12);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        footer.setPadding(new Insets(16, 28, 16, 28));
+        footer.setStyle("-fx-background-color: #f8faff; -fx-background-radius: 0 0 16 16;");
+
+        Button btnCancel = new Button("✕  Huỷ");
+        btnCancel.setStyle("-fx-background-color: white; -fx-border-color: #dde3f0; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; "
+                + "-fx-text-fill: #4a6080; -fx-font-size: 13; -fx-font-weight: bold; "
+                + "-fx-padding: 10 22; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> popup.close());
+
+        Button btnConfirm = new Button(confirmText);
+        btnConfirm.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; "
+                + "-fx-font-weight: bold; -fx-font-size: 13; "
+                + "-fx-background-radius: 10; -fx-padding: 10 22; -fx-cursor: hand; "
+                + "-fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 10, 0, 0, 3);");
+        btnConfirm.setOnAction(e -> onConfirm.run());
+
+        footer.getChildren().addAll(btnCancel, btnConfirm);
+        return footer;
+    }
+
+    /** Wrap một control với label tiêu đề bên trên */
+    private VBox makeLabeledField(String labelText, Node field) {
+        VBox box = new VBox(6);
+        Label lbl = new Label(labelText);
+        lbl.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;");
+        box.getChildren().addAll(lbl, field);
+        return box;
+    }
+
+    private Item buildItemFromForm(String category, String name, String desc,
+                                   String priceText, String imageUrl, String extra) {
+        if (category == null || name == null || name.isBlank()
+                || priceText == null || priceText.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập danh mục, tên và giá.");
+            return null;
+        }
+        try {
+            double price = Double.parseDouble(priceText.trim().replace(",", ""));
+            String id = UUID.randomUUID().toString();
+            Item item;
+            switch (category) {
+                case "Electronics" -> {
+                    Electronics el = new Electronics(id, name.trim(), desc.trim(), price, price);
+                    if (extra != null && !extra.isBlank())
+                        el.setWarrantyMonths(Integer.parseInt(extra.trim()));
+                    item = el;
+                }
+                case "Art" -> {
+                    Art art = new Art(id, name.trim(), desc.trim(), price, price);
+                    art.setArtist(extra == null ? "" : extra.trim());
+                    item = art;
+                }
+                case "Vehicle" -> {
+                    Vehicle vehicle = new Vehicle(id, name.trim(), desc.trim(), price, price);
+                    if (extra != null && !extra.isBlank())
+                        vehicle.setEngineCapacity(Double.parseDouble(extra.trim()));
+                    item = vehicle;
+                }
+                default -> {
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Danh mục không hợp lệ.");
+                    return null;
+                }
+            }
+            item.setImageUrl(imageUrl == null ? "" : imageUrl.trim());
+            item.setStatus(ItemStatus.PENDING);
+            return item;
+        } catch (NumberFormatException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá hoặc thông tin thêm phải là số.");
+            return null;
+        }
+    }
+
+    private void updateBalanceLabels() {
+        String text = String.format("%,d VNĐ", balance);
+        if (lblBalance != null)      lblBalance.setText("Số dư: " + text);
+        if (lblRightBalance != null) lblRightBalance.setText(text);
+    }
+
+    private String safeText(String value) {
+        return value == null || value.isBlank() ? "N/A" : value;
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
-        alert.setTitle(title); alert.setHeaderText(null); alert.setContentText(message);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
         alert.showAndWait();
     }
 }

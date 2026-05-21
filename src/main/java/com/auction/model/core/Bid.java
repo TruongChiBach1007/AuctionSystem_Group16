@@ -5,23 +5,30 @@ import com.auction.model.users.Bidder;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 public class Bid implements Serializable {
     private static final long serialVersionUID = 1L;
+    private String id;
     private Bidder bidder;
     private Double amount;
     private LocalTime time;
     private String manualBidderName;
+    private BidStatus status;
 
     public Bid(Bidder bidder, double amount) {
+        this.id = UUID.randomUUID().toString();
         this.bidder = bidder;
         this.amount = amount;
         this.time = LocalTime.now();
+        this.status = BidStatus.PENDING;
     }
     public Bid(String manualBidderName, double amount) {
+        this.id = UUID.randomUUID().toString();
         this.manualBidderName = manualBidderName;
         this.amount = amount;
         this.time = LocalTime.now();
+        this.status = BidStatus.PENDING;
     }
 
     //hàm để hiển thị thông tin trên table
@@ -48,5 +55,26 @@ public class Bid implements Serializable {
 
     public Bidder getBidder() {
         return bidder;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public BidStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BidStatus status) {
+        this.status = status;
+    }
+
+    public String getStatusText() {
+        if (status == null) return "UNKNOWN";
+        return switch (status) {
+            case PENDING -> "Cho duyet";
+            case APPROVED -> "Da duyet";
+            case REJECTED -> "Tu choi";
+        };
     }
 }

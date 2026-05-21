@@ -1,5 +1,6 @@
 package com.auction;
 
+import com.auction.network.AuctionServer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -11,6 +12,8 @@ public class AuctionApp extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+        AuctionServer.startInBackground();
+
         // Nơi này quyết định màn hình nào sẽ hiện lên đầu tiên
         FXMLLoader fxmlLoader = new FXMLLoader(AuctionApp.class.getResource("/com/auction/login-view.fxml"));
 
