@@ -11,6 +11,7 @@ public abstract class Item implements Serializable {
     private ItemStatus status;
     private String sellerName;
     private String imageUrl;
+    private Object sellerUsername;
 
     public Item (String id, String name, String description, double startingPrice, double currentPrice) {
         this.id = id;
@@ -48,6 +49,10 @@ public abstract class Item implements Serializable {
     @Override
     public String toString() {
         return "Sản phẩm: " + name + " | Giá hiện tại: " + currentPrice;
+    }
+
+    public Object getSellerUsername() {
+        return this.sellerUsername; // Trong đó sellerUsername là một biến kiểu String
     }
 }
 

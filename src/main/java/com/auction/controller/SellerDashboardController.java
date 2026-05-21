@@ -259,4 +259,7 @@ public class SellerDashboardController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    public void initData(String fullName) {
+    }
 }
