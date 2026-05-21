@@ -13,4 +13,10 @@ public interface IItemDAO {
 
     // 3. Admin dùng hàm này để duyệt sản phẩm (Đổi status của một Item dựa vào ID hoặc chính object đó)
     void updateItemStatus(Item item, ItemStatus newStatus);
+    List<Item> getItemsBySeller(String username);
+    // Hàm cập nhật thông tin sản phẩm
+    boolean updateItem(Item item);
+
+    // Hàm xóa sản phẩm theo ID
+    boolean deleteItem(String id);
 }
