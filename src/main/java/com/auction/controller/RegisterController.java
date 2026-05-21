@@ -1,5 +1,8 @@
 package com.auction.controller;
 
+import com.auction.dao.IUserDAO;
+import com.auction.dao.UserDAOImpl;
+import com.auction.model.users.Bidder;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,6 +14,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class RegisterController {
+    private final IUserDAO userDAO = new UserDAOImpl();
 
     @FXML
     private TextField txtFullName;
@@ -34,23 +38,31 @@ public class RegisterController {
             messageLabel.setText("Vui lòng điền đầy đủ thông tin!");
             return;
         }
-        if (password.length() < 4) {
-            messageLabel.setText("Mật khẩu phải có ít nhất 4 ký tự!");
+        if (password.length() < 6) {
+            messageLabel.setText("Mật khẩu phải có ít nhất 6 ký tự!");
             return;
         }
         if (!email.contains("@")) {
             messageLabel.setText("Email không hợp lệ!");
             return;
         }
+        if (userDAO.findByUsername(username) != null) {
+            messageLabel.setText("Tên tài khoản đã tồn tại!");
+            return;
+        }
 
-        // TODO: gọi service đăng ký
-        System.out.println("Đăng ký: " + username + " - " + email);
+        int newId = userDAO.getAllUsers().stream()
+                .mapToInt(user -> user.getId())
+                .max()
+                .orElse(0) + 1;
+        userDAO.addUser(new Bidder(newId, username, password, fullName, email, 0.0));
 
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Đăng ký thành công");
         alert.setHeaderText(null);
         alert.setContentText("Tài khoản \"" + username + "\" đã được tạo!\nVui lòng đăng nhập để tiếp tục.");
         alert.showAndWait();
+        handleBackToLogin(event);
 
     }
 

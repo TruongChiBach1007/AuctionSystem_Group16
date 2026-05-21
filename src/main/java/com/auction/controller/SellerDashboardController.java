@@ -51,6 +51,7 @@ public class SellerDashboardController {
     private Item selectedItem;
     private AuctionClient auctionClient;
     private String sellerName = "Seller";
+    private String sellerUsername = "Seller";
 
     @FXML
     public void initialize() {
@@ -176,6 +177,7 @@ public class SellerDashboardController {
             }
 
             item.setSellerName(sellerName);
+            item.setSellerUsername(sellerUsername);
             item.setImageUrl(txtImageUrl.getText().trim());
             item.setStatus(ItemStatus.PENDING);
             return item;
@@ -234,8 +236,7 @@ public class SellerDashboardController {
     }
 
     public void setLblUsername(String username) {
-        sellerName = username;
-        lblUsername.setText("Ten tai khoan: " + username.toUpperCase());
+        initData(username, username);
     }
 
     private void clearForm() {
@@ -260,6 +261,13 @@ public class SellerDashboardController {
         alert.showAndWait();
     }
 
-    public void initData(String fullName) {
+    public void initData(String username) {
+        initData(username, username);
+    }
+
+    public void initData(String username, String fullName) {
+        sellerUsername = username;
+        sellerName = fullName == null || fullName.isBlank() ? username : fullName;
+        lblUsername.setText("Ten tai khoan: " + sellerName.toUpperCase());
     }
 }

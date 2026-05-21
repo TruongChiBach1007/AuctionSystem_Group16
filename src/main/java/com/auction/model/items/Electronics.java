@@ -7,7 +7,7 @@ public class Electronics extends Item {
     public Electronics(String id, String name, String description, double startingPrice, double currentPrice) {
         // Truyền đủ 5 cái vào super
         super(id, name, description, startingPrice, currentPrice);
-        this.warrantyMonths = warrantyMonths;
+        this.warrantyMonths = 0;
     }
 
     public int getWarrantyMonths() {

@@ -1,8 +1,12 @@
 package com.auction.network;
 
+import com.auction.model.core.DepositRequest;
+import com.auction.model.core.DepositStatus;
 import com.auction.model.core.Auction;
 import com.auction.model.items.Item;
 import com.auction.model.items.ItemStatus;
+import com.auction.model.users.Bidder;
+import com.auction.model.users.User;
 import com.auction.utils.DatabaseConnection;
 import java.io.IOException;
 import java.net.BindException;
@@ -21,6 +25,7 @@ public class AuctionServer {
     private static final List<ClientHandler> sellers = new CopyOnWriteArrayList<>();
     private static final Map<String, Item> pendingItems = new ConcurrentHashMap<>();
     private static final Map<String, Item> approvedItems = new ConcurrentHashMap<>();
+    private static final Map<String, DepositRequest> pendingDeposits = new ConcurrentHashMap<>();
     private static final Auction auction = new Auction(10000.0, 3600000);
     private static boolean started = false;
 
@@ -62,6 +67,9 @@ public class AuctionServer {
         for (Item item : pendingItems.values()) {
             client.sendToClient(new AuctionMessage(MessageType.ITEM_PENDING, item));
         }
+        for (DepositRequest request : pendingDeposits.values()) {
+            client.sendToClient(new AuctionMessage(MessageType.DEPOSIT_PENDING, request));
+        }
     }
 
     public static void registerBidder(ClientHandler client) {
@@ -96,6 +104,38 @@ public class AuctionServer {
         if (item == null) return;
         item.setStatus(ItemStatus.REJECTED);
         broadcast(new AuctionMessage(MessageType.ITEM_REJECTED, item));
+    }
+
+    public static void handleDepositRequest(DepositRequest request) {
+        if (request == null || request.getAmount() <= 0) return;
+        request.setStatus(DepositStatus.PENDING);
+        pendingDeposits.put(request.getId(), request);
+        DatabaseConnection.getInstance().getDepositRequestTable().add(request);
+        broadcastToAdmins(new AuctionMessage(MessageType.DEPOSIT_PENDING, request));
+    }
+
+    public static void approveDeposit(String depositId) {
+        DepositRequest request = pendingDeposits.remove(depositId);
+        if (request == null) return;
+        request.setStatus(DepositStatus.APPROVED);
+        addBalance(request.getUsername(), request.getAmount());
+        broadcast(new AuctionMessage(MessageType.DEPOSIT_APPROVED, request));
+    }
+
+    public static void rejectDeposit(String depositId) {
+        DepositRequest request = pendingDeposits.remove(depositId);
+        if (request == null) return;
+        request.setStatus(DepositStatus.REJECTED);
+        broadcast(new AuctionMessage(MessageType.DEPOSIT_REJECTED, request));
+    }
+
+    private static void addBalance(String username, long amount) {
+        for (User user : DatabaseConnection.getInstance().getUserTable()) {
+            if (user instanceof Bidder bidder && user.getUsername().equalsIgnoreCase(username)) {
+                bidder.setBalance(bidder.getBalance() + amount);
+                return;
+            }
+        }
     }
 
     public static void broadcast(Object message) {

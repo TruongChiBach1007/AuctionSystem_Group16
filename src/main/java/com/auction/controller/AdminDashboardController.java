@@ -1,9 +1,13 @@
 package com.auction.controller;
 
+import com.auction.model.core.DepositRequest;
+import com.auction.model.core.DepositStatus;
 import com.auction.model.items.Item;
+import com.auction.model.items.ItemStatus;
 import com.auction.network.AuctionClient;
 import com.auction.network.AuctionMessage;
 import com.auction.network.MessageType;
+import com.auction.utils.DatabaseConnection;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -52,19 +56,29 @@ public class AdminDashboardController {
     @FXML private TableColumn<Item, Double> colProductPrice;
     @FXML private TableColumn<Item, String> colProductSeller;
     @FXML private TableColumn<Item, String> colProductStatus;
-    @FXML private TableView tableDeposits;
+    @FXML private TableView<DepositRequest> tableDeposits;
+    @FXML private TableColumn<DepositRequest, String> colDepositUser;
+    @FXML private TableColumn<DepositRequest, String> colDepositAmount;
+    @FXML private TableColumn<DepositRequest, String> colDepositTime;
+    @FXML private TableColumn<DepositRequest, String> colDepositStatus;
     @FXML private TableView tableAuctions;
+    @FXML private VBox recentActivityBox;
 
     private final ObservableList<Item> pendingItems = FXCollections.observableArrayList();
+    private final ObservableList<DepositRequest> pendingDeposits = FXCollections.observableArrayList();
     private AuctionClient auctionClient;
 
     @FXML
     public void initialize() {
-        lblTotalUsers.setText("12");
-        lblTotalProducts.setText("5");
-        lblPending.setText("0");
-        lblRevenue.setText("150,000,000 VND");
+        pendingItems.addAll(DatabaseConnection.getInstance().getItemTable().stream()
+                .filter(item -> item.getStatus() == ItemStatus.PENDING)
+                .toList());
+        pendingDeposits.addAll(DatabaseConnection.getInstance().getDepositRequestTable().stream()
+                .filter(request -> request.getStatus() == DepositStatus.PENDING)
+                .toList());
         setupProductTable();
+        setupDepositTable();
+        updateOverview();
     }
 
     public void setAdminName(String name) {
@@ -72,7 +86,16 @@ public class AdminDashboardController {
             connectSocket();
         }
         lblAdminName.setText("Admin " + name.toUpperCase());
-        updatePendingCount();
+        updateOverview();
+    }
+
+    private void setupDepositTable() {
+        if (tableDeposits == null) return;
+        colDepositUser.setCellValueFactory(new PropertyValueFactory<>("username"));
+        colDepositAmount.setCellValueFactory(new PropertyValueFactory<>("amountText"));
+        colDepositTime.setCellValueFactory(new PropertyValueFactory<>("requestTimeText"));
+        colDepositStatus.setCellValueFactory(new PropertyValueFactory<>("statusText"));
+        tableDeposits.setItems(pendingDeposits);
     }
 
     private void setupProductTable() {
@@ -99,19 +122,63 @@ public class AdminDashboardController {
 
         Platform.runLater(() -> {
             if (message.getType() == MessageType.ITEM_PENDING && message.getItem() != null) {
+                pendingItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
                 pendingItems.add(0, message.getItem());
             } else if ((message.getType() == MessageType.ITEM_APPROVED || message.getType() == MessageType.ITEM_REJECTED)
                     && message.getItem() != null) {
                 pendingItems.removeIf(item -> item.getId().equals(message.getItemId()));
+            } else if (message.getType() == MessageType.DEPOSIT_PENDING && message.getDepositRequest() != null) {
+                pendingDeposits.removeIf(request -> request.getId().equals(message.getDepositRequest().getId()));
+                pendingDeposits.add(0, message.getDepositRequest());
+            } else if ((message.getType() == MessageType.DEPOSIT_APPROVED || message.getType() == MessageType.DEPOSIT_REJECTED)
+                    && message.getDepositRequest() != null) {
+                pendingDeposits.removeIf(request -> request.getId().equals(message.getDepositRequest().getId()));
             } else if (message.getType() == MessageType.ERROR) {
                 showAlert(Alert.AlertType.ERROR, "Socket error", message.getMessage());
             }
-            updatePendingCount();
+            updateOverview();
         });
     }
 
-    private void updatePendingCount() {
-        lblPending.setText(String.valueOf(pendingItems.size()));
+    private void updateOverview() {
+        var db = DatabaseConnection.getInstance();
+        long approvedProducts = db.getItemTable().stream()
+                .filter(item -> item.getStatus() == ItemStatus.APPROVED)
+                .count();
+        long pendingProductCount = pendingItems.size();
+        long pendingDepositCount = pendingDeposits.size();
+        long approvedDepositTotal = db.getDepositRequestTable().stream()
+                .filter(request -> request.getStatus() == DepositStatus.APPROVED)
+                .mapToLong(DepositRequest::getAmount)
+                .sum();
+
+        lblTotalUsers.setText(String.valueOf(db.getUserTable().size()));
+        lblTotalProducts.setText(String.valueOf(approvedProducts));
+        lblPending.setText(String.valueOf(pendingProductCount + pendingDepositCount));
+        lblRevenue.setText(String.format("%,d VND", approvedDepositTotal));
+        renderRecentActivity();
+    }
+
+    private void renderRecentActivity() {
+        if (recentActivityBox == null) return;
+        recentActivityBox.getChildren().clear();
+
+        for (DepositRequest request : pendingDeposits.stream().limit(3).toList()) {
+            Label label = new Label(String.format("- %s yeu cau nap %,d VND dang cho duyet",
+                    request.getUsername(), request.getAmount()));
+            label.setStyle("-fx-text-fill: #e67e22;");
+            recentActivityBox.getChildren().add(label);
+        }
+        for (Item item : pendingItems.stream().limit(3).toList()) {
+            Label label = new Label("- San pham \"" + item.getName() + "\" dang cho duyet");
+            label.setStyle("-fx-text-fill: #555;");
+            recentActivityBox.getChildren().add(label);
+        }
+        if (recentActivityBox.getChildren().isEmpty()) {
+            Label empty = new Label("- Chua co yeu cau nao dang cho xu ly");
+            empty.setStyle("-fx-text-fill: #7f8c8d;");
+            recentActivityBox.getChildren().add(empty);
+        }
     }
 
     private void showPane(VBox pane, Button activeBtn) {
@@ -152,7 +219,7 @@ public class AdminDashboardController {
         }
         auctionClient.send(new AuctionMessage(MessageType.APPROVE_ITEM, selectedItem.getId(), true));
         pendingItems.remove(selectedItem);
-        updatePendingCount();
+        updateOverview();
         showAlert(Alert.AlertType.INFORMATION, "Da duyet", "San pham da duoc duyet va dua len san!");
     }
 
@@ -165,7 +232,7 @@ public class AdminDashboardController {
         }
         auctionClient.send(new AuctionMessage(MessageType.REJECT_ITEM, selectedItem.getId(), true));
         pendingItems.remove(selectedItem);
-        updatePendingCount();
+        updateOverview();
         showAlert(Alert.AlertType.INFORMATION, "Da tu choi", "San pham da bi tu choi!");
     }
 
@@ -189,19 +256,33 @@ public class AdminDashboardController {
 
     @FXML
     public void handleApproveDeposit(ActionEvent event) {
-        if (tableDeposits.getSelectionModel().getSelectedItem() == null) {
+        DepositRequest selected = tableDeposits.getSelectionModel().getSelectedItem();
+        if (selected == null) {
             showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon yeu cau de duyet!");
             return;
         }
+        if (auctionClient != null) {
+            auctionClient.send(new AuctionMessage(MessageType.APPROVE_DEPOSIT, selected.getId(), false));
+        }
+        selected.setStatus(DepositStatus.APPROVED);
+        pendingDeposits.remove(selected);
+        updateOverview();
         showAlert(Alert.AlertType.INFORMATION, "Da duyet", "Yeu cau nap tien da duoc duyet!");
     }
 
     @FXML
     public void handleRejectDeposit(ActionEvent event) {
-        if (tableDeposits.getSelectionModel().getSelectedItem() == null) {
+        DepositRequest selected = tableDeposits.getSelectionModel().getSelectedItem();
+        if (selected == null) {
             showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon yeu cau de tu choi!");
             return;
         }
+        if (auctionClient != null) {
+            auctionClient.send(new AuctionMessage(MessageType.REJECT_DEPOSIT, selected.getId(), false));
+        }
+        selected.setStatus(DepositStatus.REJECTED);
+        pendingDeposits.remove(selected);
+        updateOverview();
         showAlert(Alert.AlertType.INFORMATION, "Da tu choi", "Yeu cau nap tien da bi tu choi!");
     }
 

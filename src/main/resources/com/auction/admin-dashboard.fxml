@@ -127,9 +127,7 @@
                     <Label text="🕒 Hoạt động gần đây"
                            style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
                     <Separator/>
-                    <Label text="• MINH đã đăng ký tài khoản" style="-fx-text-fill: #555;"/>
-                    <Label text="• iPhone 15 Pro Max đang được đấu giá - Giá: 35,000,000 VNĐ" style="-fx-text-fill: #555;"/>
-                    <Label text="• Yêu cầu nạp tiền 500,000 VNĐ đang chờ duyệt" style="-fx-text-fill: #e67e22;"/>
+                    <VBox fx:id="recentActivityBox" spacing="6"/>
                 </VBox>
             </VBox>
 

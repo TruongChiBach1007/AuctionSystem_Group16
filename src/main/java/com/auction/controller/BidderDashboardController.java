@@ -1,13 +1,16 @@
 package com.auction.controller;
 
+import com.auction.model.core.DepositRequest;
 import com.auction.model.items.Art;
 import com.auction.model.items.Electronics;
 import com.auction.model.items.Item;
 import com.auction.model.items.ItemStatus;
 import com.auction.model.items.Vehicle;
+import com.auction.model.users.Bidder;
 import com.auction.network.AuctionClient;
 import com.auction.network.AuctionMessage;
 import com.auction.network.MessageType;
+import com.auction.security.AuthService;
 import com.auction.utils.DatabaseConnection;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -20,6 +23,8 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -75,6 +80,7 @@ public class BidderDashboardController {
     private long balance = 500000;
     private AuctionClient auctionClient;
     private String currentUsername = "Bidder";
+    private String displayName = "Bidder";
 
     // ─────────────────────────────────────────────
     //  INIT
@@ -88,6 +94,7 @@ public class BidderDashboardController {
                         .toList()
         );
 
+        syncBalanceFromCurrentUser();
         updateBalanceLabels();
         setupSearch();
         renderAll();
@@ -98,12 +105,19 @@ public class BidderDashboardController {
     //  PUBLIC SETTER (gọi từ LoginController)
     // ─────────────────────────────────────────────
     public void setLblUsername(String username) {
+        setUserInfo(username, resolveFullName(username));
+    }
+
+    public void setUserInfo(String username, String fullName) {
         currentUsername = username.replace("Tên tài khoản: ", "")
                 .replace("Ten tai khoan: ", "").trim();
-        lblUsername.setText(currentUsername);
-        lblAvatar.setText(currentUsername.length() > 0
-                ? String.valueOf(currentUsername.charAt(0)).toUpperCase() : "B");
-        lblWelcome.setText("Chào mừng " + currentUsername + " trở lại! 👋");
+        displayName = fullName == null || fullName.isBlank() ? currentUsername : fullName.trim();
+        lblUsername.setText(displayName);
+        lblAvatar.setText(displayName.length() > 0
+                ? String.valueOf(displayName.charAt(0)).toUpperCase() : "B");
+        lblWelcome.setText("Chào mừng " + displayName + " trở lại! 👋");
+        syncBalanceFromCurrentUser();
+        updateBalanceLabels();
     }
 
     // ─────────────────────────────────────────────
@@ -120,12 +134,21 @@ public class BidderDashboardController {
 
     private void handleSocketMessage(AuctionMessage message) {
         if (message == null || message.getType() == null) return;
-        if (message.getType() == MessageType.ITEM_APPROVED && message.getItem() != null) {
-            Platform.runLater(() -> {
+        Platform.runLater(() -> {
+            if (message.getType() == MessageType.ITEM_APPROVED && message.getItem() != null) {
                 upsertApprovedItem(message.getItem());
                 renderAll();
-            });
-        }
+            } else if (message.getType() == MessageType.DEPOSIT_APPROVED
+                    && message.getDepositRequest() != null
+                    && currentUsername.equalsIgnoreCase(message.getDepositRequest().getUsername())) {
+                addLocalBalance(message.getDepositRequest().getAmount());
+                updateBalanceLabels();
+            } else if (message.getType() == MessageType.DEPOSIT_REJECTED
+                    && message.getDepositRequest() != null
+                    && currentUsername.equalsIgnoreCase(message.getDepositRequest().getUsername())) {
+                // Admin rejected the request; keep the bidder balance unchanged.
+            }
+        });
     }
 
     private void upsertApprovedItem(Item item) {
@@ -319,9 +342,8 @@ public class BidderDashboardController {
         Rectangle bg = new Rectangle(260, 150);
         bg.setFill(Color.web(fillColor));
         bg.setArcWidth(14); bg.setArcHeight(14);
-        Label imgIcon = new Label(icon);
-        imgIcon.setStyle("-fx-font-size: 36; -fx-opacity: 0.35;");
-        imagePane.getChildren().addAll(bg, imgIcon);
+        Node imageContent = createItemImageNode(item, 260, 150, icon, 36);
+        imagePane.getChildren().addAll(bg, imageContent);
 
         // Badge "Hot" / "Mới"
         Label badge = new Label("Live");
@@ -395,8 +417,13 @@ public class BidderDashboardController {
         String fillColor = item instanceof Electronics ? "#dbeafe"
                 : item instanceof Art ? "#fef9c3"
                 : item instanceof Vehicle ? "#dcfce7" : "#f1f5f9";
-        Rectangle imgPlaceholder = new Rectangle(450, 160);
+        StackPane imagePane = new StackPane();
+        Rectangle imgPlaceholder = new Rectangle(450, 190);
         imgPlaceholder.setFill(Color.web(fillColor));
+        Node popupImage = createItemImageNode(item, 450, 190,
+                item instanceof Electronics ? "💻" : item instanceof Art ? "🎨" : item instanceof Vehicle ? "🚗" : "📦",
+                42);
+        imagePane.getChildren().addAll(imgPlaceholder, popupImage);
 
         // Body
         VBox body = new VBox(15);
@@ -433,7 +460,11 @@ public class BidderDashboardController {
         });
 
         body.getChildren().addAll(infoBox, btnJoin);
-        root.getChildren().addAll(header, imgPlaceholder, body);
+        ScrollPane scroller = new ScrollPane(body);
+        scroller.setFitToWidth(true);
+        scroller.setPrefViewportHeight(360);
+        scroller.setStyle("-fx-background: white; -fx-background-color: white; -fx-border-color: transparent;");
+        root.getChildren().addAll(header, imagePane, scroller);
 
         popup.setScene(new Scene(root));
         popup.showAndWait();
@@ -601,6 +632,7 @@ public class BidderDashboardController {
                     txtImageUrl.getText(), txtExtra.getText());
             if (item == null) return;
             item.setSellerName(currentUsername);
+            item.setSellerUsername(currentUsername);
             if (auctionClient != null)
                 auctionClient.send(new AuctionMessage(MessageType.ITEM_REQUEST, item));
             showAlert(Alert.AlertType.INFORMATION, "Đã gửi",
@@ -703,7 +735,14 @@ public class BidderDashboardController {
             if (input.isEmpty()) { showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập số tiền!"); return; }
             try {
                 long amount = Long.parseLong(input);
-                if (amount <= 0) { showAlert(Alert.AlertType.ERROR, "Lỗi", "Số tiền phải lớn hơn 0!"); return; }
+                if (amount <= 0) {
+                    showAlert(Alert.AlertType.ERROR, "Loi", "So tien phai lon hon 0!");
+                    return;
+                }
+                DepositRequest request = new DepositRequest(currentUsername, amount);
+                if (auctionClient != null) {
+                    auctionClient.send(new AuctionMessage(MessageType.DEPOSIT_REQUEST, request));
+                }
                 showAlert(Alert.AlertType.INFORMATION, "Đã gửi yêu cầu",
                         String.format("Yêu cầu nạp %,d VNĐ đã ghi nhận!\nVui lòng chờ Admin xác nhận.", amount));
                 popup.close();
@@ -818,6 +857,71 @@ public class BidderDashboardController {
         String text = String.format("%,d VNĐ", balance);
         if (lblBalance != null)      lblBalance.setText("Số dư: " + text);
         if (lblRightBalance != null) lblRightBalance.setText(text);
+    }
+
+    private void syncBalanceFromCurrentUser() {
+        if (AuthService.getInstance().getCurrentUser() instanceof Bidder bidder) {
+            balance = Math.round(bidder.getBalance());
+        }
+    }
+
+    private String resolveFullName(String username) {
+        if (AuthService.getInstance().getCurrentUser() != null
+                && AuthService.getInstance().getCurrentUser().getUsername().equalsIgnoreCase(username)) {
+            return AuthService.getInstance().getCurrentUser().getFullName();
+        }
+        return DatabaseConnection.getInstance().getUserTable().stream()
+                .filter(user -> user.getUsername().equalsIgnoreCase(username))
+                .map(user -> user.getFullName())
+                .findFirst()
+                .orElse(username);
+    }
+
+    private void addLocalBalance(long amount) {
+        balance += amount;
+        if (AuthService.getInstance().getCurrentUser() instanceof Bidder bidder) {
+            bidder.setBalance(bidder.getBalance() + amount);
+        }
+    }
+
+    private Node createItemImageNode(Item item, double width, double height, String fallbackIcon, double fallbackSize) {
+        String imageUrl = item.getImageUrl();
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            try {
+                // true = background loading
+                Image image = new Image(imageUrl, width, height, false, true, true);
+                ImageView imageView = new ImageView(image);
+                imageView.setFitWidth(width);
+                imageView.setFitHeight(height);
+                imageView.setPreserveRatio(false);
+                imageView.setSmooth(true);
+                imageView.setMouseTransparent(true);
+
+                // Nếu load lỗi thì thay bằng icon
+                image.errorProperty().addListener((obs, oldVal, isError) -> {
+                    if (isError) {
+                        Platform.runLater(() -> {
+                            StackPane parent = (StackPane) imageView.getParent();
+                            if (parent != null) {
+                                parent.getChildren().remove(imageView);
+                                parent.getChildren().add(createFallbackImageNode(fallbackIcon, fallbackSize));
+                            }
+                        });
+                    }
+                });
+
+                return imageView;
+            } catch (Exception e) {
+                System.out.println("Lỗi load ảnh: " + e.getMessage());
+            }
+        }
+        return createFallbackImageNode(fallbackIcon, fallbackSize);
+    }
+
+    private Node createFallbackImageNode(String fallbackIcon, double fallbackSize) {
+        Label imgIcon = new Label(fallbackIcon);
+        imgIcon.setStyle("-fx-font-size: " + fallbackSize + "; -fx-opacity: 0.35;");
+        return imgIcon;
     }
 
     private String safeText(String value) {

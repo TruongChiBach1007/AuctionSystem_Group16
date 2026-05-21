@@ -81,7 +81,7 @@ public class LoginController {
             Parent root = loader.load();
 
             BidderDashboardController controller = loader.getController();
-            controller.setLblUsername(user.getFullName());
+            controller.setUserInfo(user.getUsername(), user.getFullName());
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
@@ -100,7 +100,7 @@ public class LoginController {
             Parent root = loader.load();
 
             SellerDashboardController controller = loader.getController();
-            controller.initData(user.getFullName());
+            controller.initData(user.getUsername(), user.getFullName());
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));

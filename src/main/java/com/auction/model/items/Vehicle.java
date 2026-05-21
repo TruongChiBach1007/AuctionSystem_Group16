@@ -5,7 +5,7 @@ public class Vehicle extends Item {
 
     public Vehicle(String id, String name, String description, double startingPrice, double currentPrice) {
         super(id, name, description, startingPrice, currentPrice);
-        this.engineCapacity = engineCapacity;
+        this.engineCapacity = 0.0;
     }
 
     public double getEngineCapacity() {

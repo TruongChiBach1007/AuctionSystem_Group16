@@ -44,6 +44,9 @@ public class ClientHandler implements Runnable {
             case ITEM_REQUEST -> AuctionServer.handleItemRequest(message.getItem());
             case APPROVE_ITEM -> AuctionServer.approveItem(message.getItemId());
             case REJECT_ITEM -> AuctionServer.rejectItem(message.getItemId());
+            case DEPOSIT_REQUEST -> AuctionServer.handleDepositRequest(message.getDepositRequest());
+            case APPROVE_DEPOSIT -> AuctionServer.approveDeposit(message.getDepositId());
+            case REJECT_DEPOSIT -> AuctionServer.rejectDeposit(message.getDepositId());
             default -> {
                 // Other message types are server-to-client only.
             }

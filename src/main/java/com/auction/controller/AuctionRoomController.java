@@ -3,6 +3,8 @@ package com.auction.controller;
 import com.auction.model.core.Bid;
 import com.auction.model.items.Item;
 import com.auction.model.users.Bidder;
+import com.auction.model.users.User;
+import com.auction.security.AuthService;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -57,9 +59,14 @@ public class AuctionRoomController {
     private Item auctionItem;
 
     public void setCurrentUser(String username) {
-        this.currentUser = new Bidder(1, username, "pass", username, username + "@gmail.com", 500000.0);
+        User loggedInUser = AuthService.getInstance().getCurrentUser();
+        if (loggedInUser instanceof Bidder bidder) {
+            this.currentUser = bidder;
+        } else {
+            this.currentUser = new Bidder(1, username, "pass", username, username + "@gmail.com", 500000.0);
+        }
         if (statusLabel != null) {
-            statusLabel.setText("Chao mung " + username + "! San sang dau gia.");
+            statusLabel.setText("Chao mung " + currentUser.getUsername() + "! San sang dau gia.");
         }
     }
 
@@ -122,11 +129,10 @@ public class AuctionRoomController {
     }
 
     private void executeBidLogic(double newBid, String bidderName) {
-        if (currentUser != null && bidderName.equals(currentUser.getUsername())) {
-            currentUser.setBalance(currentUser.getBalance() - newBid);
-        }
-
         currentHighestBid = newBid;
+        if (auctionItem != null) {
+            auctionItem.setCurrentPrice(newBid);
+        }
         bidCount++;
         series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
         bidHistory.add(0, new Bid(bidderName, newBid));
@@ -146,6 +152,7 @@ public class AuctionRoomController {
 
     private void checkAndExecuteAutoBid(double latestPrice) {
         if (!autoBidCheckBox.isSelected()) return;
+        if (currentUser == null) return;
 
         try {
             double step = stepBidField.getText().isEmpty() ? 500.0 : Double.parseDouble(stepBidField.getText());
@@ -191,6 +198,11 @@ public class AuctionRoomController {
 
         try {
             double newBid = Double.parseDouble(input.trim());
+            if (currentUser == null) {
+                statusLabel.setText("Khong xac dinh duoc nguoi dung hien tai!");
+                statusLabel.setStyle("-fx-text-fill: #e74c3c;");
+                return;
+            }
 
             if (newBid <= currentHighestBid) {
                 statusLabel.setText("Gia phai cao hon VND " + String.format("%.0f", currentHighestBid));
@@ -216,9 +228,6 @@ public class AuctionRoomController {
             }
 
             executeBidLogic(newBid, currentUser.getUsername());
-            if (auctionItem != null) {
-                auctionItem.setCurrentPrice(newBid);
-            }
             bidInput.clear();
             bidInput.requestFocus();
         } catch (NumberFormatException e) {

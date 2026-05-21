@@ -12,5 +12,11 @@ public enum MessageType implements Serializable {
     REJECT_ITEM,
     ITEM_APPROVED,
     ITEM_REJECTED,
+    DEPOSIT_REQUEST,
+    DEPOSIT_PENDING,
+    APPROVE_DEPOSIT,
+    REJECT_DEPOSIT,
+    DEPOSIT_APPROVED,
+    DEPOSIT_REJECTED,
     ERROR
 }

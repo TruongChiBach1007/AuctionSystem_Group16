@@ -29,7 +29,9 @@
     </top>
 
     <left>
-        <VBox spacing="20" style="-fx-padding: 25; -fx-background-color: white; -fx-border-color: transparent #e8edf5 transparent transparent;" prefWidth="380">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefWidth="380"
+                    style="-fx-background-color: white; -fx-background: white; -fx-border-color: transparent #e8edf5 transparent transparent;">
+        <VBox spacing="20" style="-fx-padding: 25; -fx-background-color: white;" prefWidth="360">
 
             <VBox spacing="15" styleClass="card" style="-fx-background-color: #f8fbff; -fx-border-color: #dbeafe; -fx-padding: 15; -fx-background-radius: 10;">
                 <HBox alignment="CENTER_LEFT" spacing="10">
@@ -77,6 +79,7 @@
             </VBox>
 
         </VBox>
+        </ScrollPane>
     </left>
 
     <center>

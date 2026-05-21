@@ -16,8 +16,11 @@ public class ItemDAOImpl implements IItemDAO {
 
     @Override
     public boolean addItem(Item item) {
+        if (item == null) {
+            return false;
+        }
         itemTable.add(item);
-        return false;
+        return true;
     }
 
     @Override
@@ -51,11 +54,23 @@ public class ItemDAOImpl implements IItemDAO {
 
     @Override
     public boolean updateItem(Item item) {
+        if (item == null || item.getId() == null) {
+            return false;
+        }
+        for (int i = 0; i < itemTable.size(); i++) {
+            if (item.getId().equals(itemTable.get(i).getId())) {
+                itemTable.set(i, item);
+                return true;
+            }
+        }
         return false;
     }
 
     @Override
     public boolean deleteItem(String id) {
-        return false;
+        if (id == null) {
+            return false;
+        }
+        return itemTable.removeIf(item -> id.equals(item.getId()));
     }
 }

@@ -39,12 +39,16 @@ public class Auction implements Serializable {
     }
     //thông báo cho tất cả Observer
     private void notifyUpdate() {
+        String bidderName = highestBidder != null ? highestBidder.getFullName() : "Không có";
         for (AuctionObserver obs : observers) {
-            obs.BidUpdate(currentPrice, highestBidder.getFullName());
+            obs.BidUpdate(currentPrice, bidderName);
         }
     }
     public void registerAutoBid(AutoBid autoBid) {//autoBid lấy thuộc tinh AutoBid
         synchronized (lock) {
+            if (autoBid == null || autoBid.getBidder() == null || autoBid.getIncrement() <= 0) {
+                throw new IllegalArgumentException("AutoBid không hợp lệ!");
+            }
             autoBids.add(autoBid);
         }
     }
@@ -68,7 +72,8 @@ public class Auction implements Serializable {
                 return false; // Trả về false để báo hiệu đặt giá không thành công
             }
             if (bidAmount <= currentPrice) {
-                throw new IllegalArgumentException("Bid không hợp lệ! Vui lòng đặt giá cao hơn ");
+                System.out.println("Từ chối Bid: giá đặt phải cao hơn " + currentPrice);
+                return false;
             }
             //LOGIC ANTI-SNIPING
             //NẾU ĐẶT GIÁ THÀNH CÔNG TRONG 10S CUỐI THÌ GIA HẠN THÊM 60S
