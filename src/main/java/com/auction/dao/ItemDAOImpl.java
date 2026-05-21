@@ -38,4 +38,24 @@ public class ItemDAOImpl implements IItemDAO {
             item.setStatus(newStatus); // Thay đổi trạng thái (Ví dụ từ PENDING sang APPROVED)
         }
     }
+    @Override
+    public List<Item> getItemsBySeller(String username) {
+        List<Item> result = new ArrayList<>();
+        for (Item item : itemTable) {
+            if (item.getSellerUsername() != null && item.getSellerUsername().equals(username)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public boolean updateItem(Item item) {
+        return false;
+    }
+
+    @Override
+    public boolean deleteItem(String id) {
+        return false;
+    }
 }

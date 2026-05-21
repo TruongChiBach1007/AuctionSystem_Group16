@@ -8,6 +8,36 @@ public abstract class Item implements Serializable {
     private String description;
     private double startingPrice;
     private double currentPrice;
+    private String sellerUsername;
+    private ItemStatus status;
+
+    public void setSellerUsername(String sellerUsername) {
+        this.sellerUsername = sellerUsername;
+    }
+
+    public void setStatus(ItemStatus status) {
+        this.status = status;
+    }
+
+    public ItemStatus getStatus() {
+        return status;
+    }
+
+    public String getSellerUsername() {
+        return sellerUsername;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setStartPrice(double startPrice) {
+        this.startingPrice = startPrice;
+    }
 
     public Item (String id, String name, String description, double startingPrice, double currentPrice) {
         this.id = id;

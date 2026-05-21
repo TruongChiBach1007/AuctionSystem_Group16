@@ -1,5 +1,7 @@
 package com.auction.controller;
 
+import com.auction.model.items.Item;
+import com.auction.model.items.ItemStatus;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -9,10 +11,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import com.auction.dao.IItemDAO;
+import com.auction.dao.ItemDAOImpl;
 
 import java.io.IOException;
 
 public class AdminDashboardController {
+    private final IItemDAO itemDAO = new ItemDAOImpl();
 
     @FXML private Label lblAdminName;
     @FXML private Label lblTotalUsers;
@@ -106,20 +111,45 @@ public class AdminDashboardController {
     // --- Duyệt sản phẩm ---
     @FXML
     public void handleApproveProduct(ActionEvent event) {
-        if (tableProducts.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để duyệt!");
+        // 1. Ép kiểu dòng được chọn trên bảng thành đối tượng Item
+        Item selectedItem = (Item) tableProducts.getSelectionModel().getSelectedItem();
+
+
+        if (selectedItem == null) {
+            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để duyệt");
             return;
         }
-        showAlert(Alert.AlertType.INFORMATION, "Đã duyệt", "Sản phẩm đã được duyệt và đưa lên sàn!");
+
+        // 2. Gọi DAO để update trạng thái thành APPROVED
+        itemDAO.updateItemStatus(selectedItem, ItemStatus.APPROVED)
+        ;
+
+        showAlert(Alert.AlertType.INFORMATION, "Đã duyệt", "Sản phẩm đã được đưa lên sàn đấu giá");
+
+        tableProducts.getItems().remove(selectedItem);
+        tableProducts.refresh();
     }
 
     @FXML
     public void handleRejectProduct(ActionEvent event) {
-        if (tableProducts.getSelectionModel().getSelectedItem() == null) {
-            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để từ chối!");
+        // 1. Ép kiểu dòng được chọn trên bảng thành đối tượng Item
+        Item selectedItem = (Item) tableProducts.getSelectionModel().getSelectedItem();
+
+        // 2. Kiểm tra điều kiện (Tránh lỗi nếu chưa chọn gì trên bảng)
+        if (selectedItem == null) {
+            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để từ chối");
             return;
         }
-        showAlert(Alert.AlertType.INFORMATION, "Đã từ chối", "Sản phẩm đã bị từ chối!");
+
+        // 3. Gọi DAO để update trạng thái thành REJECTED trong Data
+        itemDAO.updateItemStatus(selectedItem, ItemStatus.REJECTED);
+
+        // 4. Xóa sản phẩm vừa xử lý khỏi danh sách trên bảng và làm mới giao diện
+        tableProducts.getItems().remove(selectedItem);
+        tableProducts.refresh();
+
+        // 5. Hiển thị thông báo thành công
+        showAlert(Alert.AlertType.INFORMATION, "Đã từ chối", "Sản phẩm đã bị từ chối và xóa khỏi danh sách chờ duyệt");
     }
 
     // --- Duyệt nạp tiền ---

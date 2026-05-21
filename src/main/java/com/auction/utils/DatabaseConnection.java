@@ -1,5 +1,6 @@
 package com.auction.utils;
 
+import com.auction.model.items.Item;
 import com.auction.model.users.User;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,6 +8,8 @@ import java.util.List;
 public class DatabaseConnection {
     private static DatabaseConnection instance;
     private final List<User> userTable;
+    private final List<Item> itemTable;
+
 
     private DatabaseConnection() {
         userTable = new ArrayList<>();
@@ -17,6 +20,7 @@ public class DatabaseConnection {
         userTable.add(new com.auction.model.users.Admin(3, "admin", "123", "Hệ Thống", "admin@auction.com", 1));
 
         userTable.add(new com.auction.model.users.Bidder(1, "hminh", "123", "Trần Hoàng Minh", "hminh@uet.com", 0.0));
+        this.itemTable = new ArrayList<>();
     }
 
     public static DatabaseConnection getInstance() {
@@ -28,5 +32,8 @@ public class DatabaseConnection {
 
     public List<User> getUserTable() {
         return userTable;
+    }
+    public List<Item> getItemTable() {
+        return itemTable;
     }
 }
