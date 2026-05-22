@@ -3,6 +3,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.shape.Circle?>
+<?import javafx.scene.image.ImageView?>
 
 <BorderPane stylesheets="@css/styles.css" prefWidth="1200" prefHeight="750" style="-fx-background-color: #f0f4ff;"
             xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
@@ -64,57 +65,103 @@
 
                 <HBox spacing="15">
                     <Button text="✏️ Sửa sản phẩm" onAction="#handleEdit" styleClass="btn-primary" prefWidth="180"/>
-                    <Button text="🗑️ Xóa sản phẩm" onAction="#handleDelete" style="-fx-background-color: #fee2e2; -fx-text-fill: #ef4444; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 8; -fx-cursor: hand;" prefWidth="180"/>
+                    <Button text="🗑️ Xóa sản phẩm" onAction="#handleDelete"
+                            style="-fx-background-color: #fee2e2; -fx-text-fill: #ef4444;
+                                   -fx-font-weight: bold; -fx-padding: 10 20;
+                                   -fx-background-radius: 8; -fx-cursor: hand;" prefWidth="180"/>
                 </HBox>
             </VBox>
 
+            <!-- FORM BÊN PHẢI -->
             <VBox spacing="18" prefWidth="350" styleClass="card" style="-fx-padding: 25; -fx-background-color: white;">
                 <HBox alignment="CENTER_LEFT" spacing="10">
                     <Circle radius="5" fill="#3b82f6" />
-                    <Label fx:id="lblFormTitle" text="THÊM SẢN PHẨM" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;"/>
+                    <Label fx:id="lblFormTitle" text="THÊM SẢN PHẨM"
+                           style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;"/>
                 </HBox>
 
                 <Separator style="-fx-opacity: 0.5;"/>
 
                 <VBox spacing="15">
+
+                    <!-- Danh mục -->
                     <VBox spacing="5">
                         <Label text="Danh mục" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
-                        <ComboBox fx:id="cmbCategory" maxWidth="Infinity" promptText="Chọn danh mục..." styleClass="combo-box"/>
+                        <ComboBox fx:id="cmbCategory" maxWidth="Infinity"
+                                  promptText="Chọn danh mục..." styleClass="combo-box"/>
                     </VBox>
 
+                    <!-- Tên sản phẩm -->
                     <VBox spacing="5">
                         <Label text="Tên sản phẩm" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
                         <TextField fx:id="txtName" promptText="Nhập tên sản phẩm..." styleClass="text-field"/>
                     </VBox>
 
+                    <!-- Mô tả -->
                     <VBox spacing="5">
                         <Label text="Mô tả" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
-                        <TextArea fx:id="txtDescription" promptText="Mô tả chi tiết sản phẩm..." prefHeight="100" wrapText="true" styleClass="text-area"/>
+                        <TextArea fx:id="txtDescription" promptText="Mô tả chi tiết sản phẩm..."
+                                  prefHeight="80" wrapText="true" styleClass="text-area"/>
                     </VBox>
 
+                    <!-- Giá -->
                     <VBox spacing="5">
                         <Label text="Giá khởi điểm (VNĐ)" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
                         <TextField fx:id="txtStartPrice" promptText="VD: 1.000.000" styleClass="text-field"/>
                     </VBox>
 
+                    <!-- ẢNH SẢN PHẨM — chọn từ máy -->
                     <VBox spacing="5">
-                        <Label text="URL anh san pham" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
-                        <TextField fx:id="txtImageUrl" promptText="https://..." styleClass="text-field"/>
+                        <Label text="Ảnh sản phẩm" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <!-- TextField chỉ đọc, hiện tên file -->
+                            <TextField fx:id="txtImageUrl"
+                                       promptText="Chưa chọn ảnh..."
+                                       HBox.hgrow="ALWAYS"
+                                       style="-fx-background-color: #f5f7fc;
+                                              -fx-border-color: #dde3f0;
+                                              -fx-border-radius: 8;
+                                              -fx-background-radius: 8;
+                                              -fx-padding: 8 12;
+                                              -fx-font-size: 12;"/>
+                            <!-- Nút chọn ảnh -->
+                            <Button text="📁 Chọn"
+                                    onAction="#handleChooseImage"
+                                    style="-fx-background-color: #3b82f6;
+                                           -fx-text-fill: white;
+                                           -fx-font-weight: bold;
+                                           -fx-padding: 8 12;
+                                           -fx-background-radius: 8;
+                                           -fx-cursor: hand;
+                                           -fx-font-size: 12;"/>
+                        </HBox>
+                        <!-- Preview ảnh nhỏ -->
+                        <ImageView fx:id="imgPreview"
+                                   fitWidth="80" fitHeight="80"
+                                   preserveRatio="true"
+                                   visible="false" managed="false"
+                                   style="-fx-background-radius: 8;"/>
                     </VBox>
 
+                    <!-- Field phụ theo danh mục -->
                     <VBox fx:id="vboxExtra" spacing="5" visible="false" managed="false">
-                        <Label fx:id="lblExtra" text="Thông tin thêm" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
+                        <Label fx:id="lblExtra" text="Thông tin thêm"
+                               style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12;"/>
                         <TextField fx:id="txtExtra" styleClass="text-field"/>
                     </VBox>
+
                 </VBox>
 
                 <Region VBox.vgrow="ALWAYS"/>
 
                 <VBox spacing="10">
-                    <Button fx:id="btnSave" text="💾 LƯU SẢN PHẨM" onAction="#handleSave" maxWidth="Infinity" styleClass="btn-success" style="-fx-padding: 12;"/>
-                    <Button text="↩️ Hủy bỏ" onAction="#handleCancel" maxWidth="Infinity" styleClass="btn-secondary" style="-fx-padding: 10;"/>
+                    <Button fx:id="btnSave" text="💾 LƯU SẢN PHẨM" onAction="#handleSave"
+                            maxWidth="Infinity" styleClass="btn-success" style="-fx-padding: 12;"/>
+                    <Button text="↩️ Hủy bỏ" onAction="#handleCancel"
+                            maxWidth="Infinity" styleClass="btn-secondary" style="-fx-padding: 10;"/>
                 </VBox>
             </VBox>
+
         </HBox>
     </center>
 </BorderPane>

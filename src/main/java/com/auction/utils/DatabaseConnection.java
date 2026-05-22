@@ -29,19 +29,19 @@ public class DatabaseConnection {
         userTable.add(new Admin(3, "admin", "123", "Admin", "admin@auction.com", 1));
         userTable.add(new Bidder(4, "hminh", "123", "Trần Hoàng Minh", "hminh@uet.com", 500000.0));
 
-        Electronics phone = new Electronics("sample-phone", "iPhone 15 Pro Max", "May moi fullbox", 35000000, 35000000);
-        phone.setSellerName("He thong");
-        phone.setSellerUsername("system");
-        phone.setImageUrl("https://commons.wikimedia.org/wiki/Special:FilePath/IPhone_15_Pro_%26_iPhone_15_Pro_Max.jpg?width=800");
-        phone.setStatus(ItemStatus.APPROVED);
-        itemTable.add(phone);
+        // iPhone 15 Pro Max
+        Electronics iphone = new Electronics("item-1", "iPhone 15 Pro Max", "iPhone 15 Pro Max 256GB titan tự nhiên", 35000000, 35000000);
+        iphone.setImageUrl(getClass().getResource("/com/auction/images/iphone.jpg").toExternalForm());
+        iphone.setStatus(ItemStatus.APPROVED);
+        iphone.setSellerName("admin");
+        itemTable.add(iphone);
 
-        Vehicle car = new Vehicle("sample-car", "Honda Civic 2024", "Xe Honda Civic RS 2024", 720000000, 720000000);
-        car.setSellerName("He thong");
-        car.setSellerUsername("system");
-        car.setImageUrl("https://commons.wikimedia.org/wiki/Special:FilePath/2022_Honda_Civic_eHEV_Advance_2.0_Front.jpg?width=800");
-        car.setStatus(ItemStatus.APPROVED);
-        itemTable.add(car);
+// Honda Civic 2024
+        Vehicle honda = new Vehicle("item-2", "Honda Civic 2024", "Honda Civic RS 2024, màu đỏ, 5000km", 720000000, 720000000);
+        honda.setImageUrl(getClass().getResource("/com/auction/images/honda.jpg").toExternalForm());
+        honda.setStatus(ItemStatus.APPROVED);
+        honda.setSellerName("admin");
+        itemTable.add(honda);
     }
 
     public static DatabaseConnection getInstance() {

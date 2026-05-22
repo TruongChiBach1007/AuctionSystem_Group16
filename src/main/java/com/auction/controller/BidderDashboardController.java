@@ -590,10 +590,51 @@ public class BidderDashboardController {
         HBox.setHgrow(txtPrice, Priority.ALWAYS);
         priceRow.getChildren().addAll(badgeVnd, txtPrice);
 
-        // URL ảnh
-        TextField txtImageUrl = new TextField();
-        txtImageUrl.setPromptText("URL ảnh sản phẩm (tùy chọn)");
-        txtImageUrl.setStyle(inputStyle);
+        // ── CHỌN ẢNH TỪ MÁY (thay URL) ──
+        final String[] selectedImagePath = {""};
+
+        HBox imageRow = new HBox(10);
+        imageRow.setAlignment(Pos.CENTER_LEFT);
+
+        TextField txtImagePath = new TextField();
+        txtImagePath.setPromptText("Chưa chọn ảnh...");
+        txtImagePath.setEditable(false);
+        txtImagePath.setStyle(inputStyle);
+        HBox.setHgrow(txtImagePath, Priority.ALWAYS);
+
+        // Preview ảnh nhỏ
+        ImageView imgPreview = new ImageView();
+        imgPreview.setFitWidth(50);
+        imgPreview.setFitHeight(50);
+        imgPreview.setPreserveRatio(true);
+        imgPreview.setStyle("-fx-background-radius: 8;");
+
+        Button btnChooseImage = new Button("📁 Chọn ảnh");
+        btnChooseImage.setStyle("-fx-background-color: #1976D2; -fx-text-fill: white; "
+                + "-fx-font-weight: bold; -fx-padding: 10 14; -fx-background-radius: 8; -fx-cursor: hand;");
+        btnChooseImage.setOnAction(e -> {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Chọn ảnh sản phẩm");
+            fileChooser.getExtensionFilters().add(
+                    new javafx.stage.FileChooser.ExtensionFilter(
+                            "Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp")
+            );
+            java.io.File file = fileChooser.showOpenDialog(popup);
+            if (file != null) {
+                String uri = file.toURI().toString();
+                selectedImagePath[0] = uri;
+                txtImagePath.setText(file.getName()); // hiện tên file
+                // Preview
+                try {
+                    Image preview = new Image(uri, 50, 50, true, true);
+                    imgPreview.setImage(preview);
+                } catch (Exception ex) {
+                    System.out.println("Không preview được: " + ex.getMessage());
+                }
+            }
+        });
+
+        imageRow.getChildren().addAll(txtImagePath, btnChooseImage, imgPreview);
 
         // Field phụ
         VBox boxExtra = new VBox(6);
@@ -620,7 +661,7 @@ public class BidderDashboardController {
                 makeLabeledField("🏷️  Tên sản phẩm *", txtName),
                 makeLabeledField("📝  Mô tả", txtDesc),
                 makeLabeledField("💰  Giá khởi điểm *", priceRow),
-                makeLabeledField("🖼️  URL ảnh", txtImageUrl),
+                makeLabeledField("🖼️  Ảnh sản phẩm", imageRow),
                 boxExtra
         );
 
@@ -629,7 +670,8 @@ public class BidderDashboardController {
             Item item = buildItemFromForm(
                     cmbCategory.getValue(), txtName.getText(),
                     txtDesc.getText(), txtPrice.getText(),
-                    txtImageUrl.getText(), txtExtra.getText());
+                    selectedImagePath[0], // dùng path đã chọn
+                    txtExtra.getText());
             if (item == null) return;
             item.setSellerName(currentUsername);
             item.setSellerUsername(currentUsername);
