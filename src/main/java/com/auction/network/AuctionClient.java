@@ -9,7 +9,7 @@ import java.net.Socket;
 
 public class AuctionClient {
     public static void main(String[] args) {
-        try (Socket socket = new Socket("localhost", 1234);
+        try (Socket socket = new Socket("192.168.100.153", 1234);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 

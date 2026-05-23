@@ -1,66 +1,155 @@
 package com.auction.network;
 
-import com.auction.controller.AuctionRoomController; // Import file của bạn
+import com.auction.controller.AdminDashboardController;
+import com.auction.controller.AuctionRoomController;
+import com.auction.controller.BidderDashboardController;
 import com.auction.model.core.Bid;
+import com.auction.model.core.TopUpMessage;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
 
 public class GUIClientManager {
-    private Socket socket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
-    private AuctionRoomController controller; // "Cầu nối" tới giao diện của bạn kia
-    private static Socket socketInstance;
+    // 1. Các biến dùng chung (Static)
+    private static GUIClientManager instance;
+    private static Socket socket;
     private static ObjectOutputStream outInstance;
+    private static ObjectInputStream inInstance;
+    private static Object controller; // Phải là static để các màn hình dùng chung
 
-    public GUIClientManager(AuctionRoomController controller) {
-        this.controller = controller;
+    // 2. Singleton Pattern - CHỖ NÀY ĐÃ FIX LỖI STATIC CỦA CẬU
+    public static GUIClientManager getInstance() {
+        if (instance == null) {
+            instance = new GUIClientManager();
+        }
+        return instance;
     }
 
-    public void startConnection() {
-        if (socketInstance != null && !socketInstance.isClosed()) {
-            return; // Nếu đã kết nối rồi thì không làm gì thêm nữa
-        }
+    // Constructor mặc định - Cần public để các Controller gọi được
+    public GUIClientManager() {
+        // Gán instance bằng chính đối tượng vừa được tạo
+        instance = this;
+    }
 
+    // 3. Kết nối Server
+    public void startConnection(String ip, int port) {
+        try {
+            if (socket != null && !socket.isClosed()) return;
+
+            socket = new Socket(ip, port);
+            outInstance = new ObjectOutputStream(socket.getOutputStream());
+            inInstance = new ObjectInputStream(socket.getInputStream());
+
+            System.out.println(">>> [NETWORK] Da ket noi toi Server!");
+            startListening();
+        } catch (IOException e) {
+            System.err.println(">>> [NETWORK] Loi ket noi: " + e.getMessage());
+        }
+    }
+
+    // 4. Luồng nhận tin từ Server
+    private void startListening() {
         new Thread(() -> {
             try {
-                socketInstance = new Socket("localhost", 1234);
-                outInstance = new ObjectOutputStream(socketInstance.getOutputStream());
-                in = new ObjectInputStream(socketInstance.getInputStream());
                 while (true) {
-                    try {
-                        Object obj = in.readObject(); // Đợi nhận Bid từ Server
-                        if (obj instanceof Bid) {
-                            Bid newBid = (Bid) obj;
-                            System.out.println(">>> Client đã nhận được giá mới: " + newBid.getAmount());
+                    Object obj = inInstance.readObject();
 
-                            // Đẩy dữ liệu lên giao diện (JavaFX)
-                            if (controller != null) {
+                    if (obj instanceof TopUpMessage) {
+                        TopUpMessage topUp = (TopUpMessage) obj;
+                        System.out.println(">>> [NETWORK] Nhan tin tu: " + topUp.getUsername() + " | Trang thai: " + topUp.getStatus());
+
+                        if (controller instanceof AdminDashboardController) {
+                            // CASE 1: Máy Admin chỉ nhận hiển thị lên bảng khi trạng thái là "Chờ duyệt"
+                            // Điều này ngăn bảng bị nhân đôi dòng khi gói tin "Hoàn thành" phát loa quay lại
+                            if ("Chờ duyệt".equals(topUp.getStatus())) {
+                                Platform.runLater(() -> {
+                                    ((AdminDashboardController) controller).receiveDepositRequest(topUp);
+                                });
+                            }
+                        } else if (controller instanceof AuctionRoomController) {
+                            // CASE 2: Máy User chỉ thực hiện cộng số dư khi trạng thái đã là "Hoàn thành"
+                            if ("Hoàn thành".equals(topUp.getStatus())) {
+                                AuctionRoomController room = (AuctionRoomController) controller;
+                                Platform.runLater(() -> {
+                                    if (room.currentUser.getUsername().equals(topUp.getUsername())) {
+                                        // Tính toán số dư tăng trưởng: Số dư hiện tại + Số tiền nạp mới
+                                        double updatedBalance = room.currentUser.getBalance() + topUp.getNewBalance();
+
+                                        // Cập nhật dữ liệu và hiển thị nhãn tiền mới lên UI
+                                        room.currentUser.setBalance(updatedBalance);
+                                        room.balanceLabel.setText(String.format("%.0f", updatedBalance));
+
+                                        System.out.println(">>> [NETWORK] Tai khoan cua ban da duoc cong: +" + topUp.getNewBalance());
+                                    }
+                                });
+                            }
+                        }else if (controller instanceof BidderDashboardController) {
+                            // CHỐT CHẶN BẮT BUỘC: Chỉ khi Admin đã bấm duyệt thành "Hoàn thành" thì Trang chủ mới được cộng tiền!
+                            if ("Hoàn thành".equals(topUp.getStatus())) {
+                                BidderDashboardController dashboard = (BidderDashboardController) controller;
                                 javafx.application.Platform.runLater(() -> {
-                                    controller.updateUIWithNewBid(newBid);
+                                    dashboard.handleNetworkTopUpSuccess(topUp.getNewBalance());
                                 });
                             }
                         }
-                    } catch (Exception e) {
-                        System.err.println("Mất kết nối với Server!");
-                        break;
+                    }
+                    else if (obj instanceof Bid) {
+                        Bid bid = (Bid) obj;
+                        System.out.println(">>> [NETWORK] Client da nhan duoc goi tin Bid: " + bid.getAmount());
+
+                        // Nếu màn hình đang hiển thị là phòng đấu giá thì ép giao diện vẽ lại
+                        if (controller instanceof AuctionRoomController) {
+                            AuctionRoomController room = (AuctionRoomController) controller;
+
+                            // Bọc vào Platform.runLater để tránh xung đột đơ luồng UI
+                            javafx.application.Platform.runLater(() -> {
+                                room.handleIncomingBid(bid);
+                            });
+                        }
                     }
                 }
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                System.err.println(">>> [NETWORK] Ngat ket noi Server!");
+            }
         }).start();
+
     }
 
-    public void sendBid(Bid bid) throws IOException {
-        // Phải dùng đúng outInstance (cái đã được khởi tạo trong Thread)
+    // 5. Các hàm hỗ trợ
+    public void setController(Object ctrl) {
+        controller = ctrl;
+        System.out.println(">>> [NETWORK] Dang phục vụ: " + ctrl.getClass().getSimpleName());
+    }
+
+    public void sendTopUp(TopUpMessage msg) throws IOException {
         if (outInstance != null) {
-            outInstance.writeObject(bid);
-            outInstance.flush(); // CỰC KỲ QUAN TRỌNG: Đẩy dữ liệu đi ngay lập tức
-            System.out.println(">>> Đã gửi Bid lên Server: " + bid.getAmount());
+            outInstance.writeObject(msg);
+            outInstance.flush();
         } else {
-            System.out.println(">>> Lỗi: Chưa có luồng gửi dữ liệu (outInstance null)!");
+            System.err.println(">>> [NETWORK] Loi: outInstance dang NULL!");
         }
     }
-    public void setController(AuctionRoomController controller) {
-        this.controller = controller; }
-}
+    public void sendBid(Bid bid) throws IOException {
+        if (outInstance != null) {
+            outInstance.writeObject(bid);
+            outInstance.flush();
+            System.out.println(">>> [NETWORK] Da gui gia dau moi: " + bid.getAmount());
+        } else {
+            System.err.println(">>> [NETWORK] Loi: outInstance dang bi NULL, khong the gui Bid!");
+            // Thử kết nối lại nếu bị mất vòi nước
+            startConnection("localhost", 1234);
+        }
+    }
+    public void sendRequestHistory(com.auction.model.core.RequestHistoryMessage msg) {
+        try {
+            if (outInstance != null) {
+                outInstance.writeObject(msg);
+                outInstance.flush();
+                System.out.println(">>> [NETWORK] Da gui don xin tai lai lich su qua khu len Server.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+// ========================================================
+} // NGOẶC CUỐI CÙNG KẾT THÚC CLASS

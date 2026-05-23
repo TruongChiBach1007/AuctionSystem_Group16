@@ -27,7 +27,7 @@ import java.io.IOException;
 
 public class AuctionRoomController {
 // khai báo bảng
-    private static GUIClientManager networkManager;
+    public static GUIClientManager networkManager;
     @FXML private TableView<Bid> auctionTable;
     @FXML private TableColumn<Bid, String> nguoiDatCol;
     @FXML private TableColumn<Bid, Double> giaCol;
@@ -42,8 +42,10 @@ public class AuctionRoomController {
     @FXML private TextField stepBidField;
     @FXML private Tooltip autoBidTooltip;
     @FXML private Label helpIcon;
+    @FXML public Label balanceLabel;
 
     private ObservableList<Bid> bidHistory = FXCollections.observableArrayList();
+    private long balance;
 
     // --- Khai báo các thành phần giao diện trùng khớp với FXML ---
 
@@ -53,7 +55,7 @@ public class AuctionRoomController {
     private double currentHighestBid = 10000; // Giá khởi điểm
     private int totalSeconds = 600;
     private Timeline timeline;
-    private Bidder currentUser;
+    public Bidder currentUser;
 
     public void setCurrentUser(String username) {
         // Khởi tạo user với tên từ màn hình Login/Dashboard
@@ -63,11 +65,21 @@ public class AuctionRoomController {
         }
     }
 
+    // --- CẬU THÊM HÀM NÀY VÀO FILE AuctionRoomController.java ---
+    public void setBalance(long sharedBalance) {
+        // 1. Gán số tiền nhận được vào biến balance vừa tạo ở trên
+        this.balance = sharedBalance;
+
+        // 2. Cập nhật chữ cho đúng cái nhãn 'balanceLabel' ở dòng 45 của cậu
+        if (balanceLabel != null) {
+            balanceLabel.setText(String.format("%,d VNĐ", sharedBalance));
+        }
+    }
+
 
     // Robot của autobid
     private boolean isAutoBidActive = false;
     private double maxAutoBidLimit = 0;
-
 
     // Hàm này chạy ngay khi màn hình vừa bật lên
     @FXML
@@ -91,11 +103,18 @@ public class AuctionRoomController {
         startCountdown();
 
 
+        // === PHẦN CẬP NHẬT CỦA THÀNH VIÊN 3 ĐỂ PHÙ HỢP VỚI NETWORK MỚI ===
         if (networkManager == null) {
-            networkManager = new GUIClientManager(this);
-            networkManager.startConnection();
+            // 1. Lấy instance duy nhất (Singleton) thay vì dùng 'new'
+            networkManager = GUIClientManager.getInstance();
+
+            // 2. Đăng ký controller này với Network
+            networkManager.setController(this);
+
+            // 3. Khởi động kết nối với IP và Port (Ví dụ localhost, 1234)
+            networkManager.startConnection("localhost", 1234);
         } else {
-            // Nếu đã có rồi, chỉ cần cập nhật cái "Controller" mới cho nó thôi
+            // Nếu đã có rồi thì chỉ cần cập nhật controller mới cho nó thôi
             networkManager.setController(this);
         }
     }
@@ -268,9 +287,97 @@ public class AuctionRoomController {
     }
 
     public void updateUIWithNewBid(Bid bid) {
-        Platform.runLater(() -> {
-            bidHistory.add(0, bid); // Cập nhật bảng
-            series.getData().add(new XYChart.Data<>(bidCount++, bid.getAmount())); // Cập nhật biểu đồ
+        javafx.application.Platform.runLater(() -> {
+            // Kiểm tra xem tin nhắn này đã có trong bảng chưa để tránh trùng lặp
+            // (Nếu Server của bạn đã chuẩn broadcast thì dòng này để cho chắc)
+            if (!auctionTable.getItems().contains(bid)) {
+                auctionTable.getItems().add(0, bid); // Thêm lên đầu bảng
+
+                // Cập nhật biểu đồ
+                series.getData().add(new javafx.scene.chart.XYChart.Data<>(bidCount++, bid.getAmount()));
+
+                // Thông báo
+                statusLabel.setText("✓ " + bid.getBidderName() + " vừa đặt giá: " + bid.getAmount());
+            }
         });
     }
+    // THÊM MỚI HÀM NÀY VÀO CUỐI CLASS
+    public void updateBalanceUI(double newBalance) {
+        javafx.application.Platform.runLater(() -> {
+            if (balanceLabel != null) {
+                balanceLabel.setText(String.format("%,.0f", newBalance)); // Format số cho đẹp (100,000)
+            }
+            if (currentUser != null) {
+                currentUser.setBalance(newBalance);
+            }
+        });
+    }
+    public void handleIncomingBid(Bid bid) {
+        try {
+            System.out.println(">>> [DEBUG UI] Hàm handleIncomingBid được gọi! Giá nhận về: " + bid.getAmount());
+            // 1. Thêm lượt đặt giá vào danh sách lịch sử để bảng tự nhảy dòng
+            if (bidHistory != null) {
+                bidHistory.add(bid);
+            }
+
+            // Ép bảng cập nhật lại dữ liệu từ list cho chắc chắn
+            if (auctionTable != null) {
+                auctionTable.refresh();
+            }
+
+            // 2. Vẽ điểm giá mới lên biểu đồ LineChart
+            if (series != null) {
+                bidCount++; // Tăng số lượt đặt giá làm trục hoành X
+                series.getData().add(new javafx.scene.chart.XYChart.Data<>(bidCount, bid.getAmount()));
+                System.out.println(">>> [UI] Da cap nhat bieu do luot dat thu: " + bidCount);
+            }
+
+            // ================= 🤖 LOGIC TĂNG GIÁ TỰ ĐỘNG =================
+            if (autoBidCheckBox != null && autoBidCheckBox.isSelected()) {
+
+                // Kiểm tra an toàn xem đối tượng user của mình và người đặt mới có tồn tại không
+                if (this.currentUser != null && bid.getBidder() != null) {
+
+                    // Lấy tên người vừa đặt cao nhất và tên của chính cậu ra để đối chiếu
+                    String lastBidderName = bid.getBidder().getUsername();
+                    String myName = this.currentUser.getUsername(); // SỬA TẠI ĐÂY: Dùng trực tiếp currentUser của Bách
+
+                    // Chỉ tự động tăng giá nếu ĐÓ LÀ NGƯỜI KHÁC ĐẶT (Không tự nâng giá đấu với chính mình)
+                    if (!myName.equals(lastBidderName)) {
+
+                        // Đọc hạn mức và bước nhảy từ giao diện
+                        long maxBid = maxBidField.getText().isEmpty() ? 0 : Long.parseLong(maxBidField.getText().trim());
+                        long stepBid = stepBidField.getText().isEmpty() ? 0 : Long.parseLong(stepBidField.getText().trim());
+
+                        if (maxBid > 0 && stepBid > 0) {
+                            // Mức giá tự động mới = Giá vừa nhận + Bước nhảy mong muốn
+                            long nextBidAmount = (long) bid.getAmount() + stepBid;
+
+                            // Kiểm tra điều kiện ngắt (Không vượt quá hạn mức VÀ không vượt quá tiền trong ví)
+                            if (nextBidAmount <= maxBid && nextBidAmount <= this.balance) {
+
+                                if (bidInput != null) {
+                                    // Tự điền con số mới vào ô nhập giá hộ cậu
+                                    bidInput.setText(String.valueOf(nextBidAmount));
+
+                                    System.out.println(">>> [AUTO-BID] Dang tu dong kich hoat ra gia: " + nextBidAmount);
+
+                                    // SỬA TẠI ĐÂY: Truyền 'null' vào ngoặc để thỏa mãn tham số ActionEvent của hàm gốc
+                                    handlePlaceBid(null);
+                                }
+                            } else {
+                                // Tự động nhả tích ô vuông khi chạm điểm dừng (Hết tiền hoặc quá hạn mức)
+                                System.out.println(">>> [AUTO-BID] Tu dong tat vi vuot han muc hoac vi khong du tien!");
+                                autoBidCheckBox.setSelected(false);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Loi khi ve giao dien dat gia: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+// ==================================================================
 }

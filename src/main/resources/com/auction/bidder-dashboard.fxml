@@ -307,7 +307,7 @@
                 <HBox alignment="CENTER_LEFT" spacing="8" style="-fx-padding: 2 0 0 0;">
                     <Label text="Số dư hiện tại"
                            style="-fx-font-size: 12; -fx-text-fill: #4a6080;" HBox.hgrow="ALWAYS"/>
-                    <Label text="50,000 VNĐ"
+                    <Label fx:id="lblSidebarBalance" text="50,000 VNĐ"
                            style="-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #3b82f6;"/>
                 </HBox>
                 <Button text="🏦  Nạp qua VNPay" onAction="#handleDeposit" prefWidth="232"

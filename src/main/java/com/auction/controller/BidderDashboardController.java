@@ -1,6 +1,9 @@
 package com.auction.controller;
 
+import com.auction.model.core.RequestHistoryMessage;
+import com.auction.model.core.TopUpMessage;
 import com.auction.model.items.*;
+import com.auction.network.GUIClientManager;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -25,12 +28,25 @@ import java.util.UUID;
 
 public class BidderDashboardController {
 
-    @FXML private Label lblUsername;
-    @FXML private Label lblBalance;
-    @FXML private TextField txtSearch;
-    @FXML private ListView<String> searchList;
-    @FXML private VBox searchDropdown;
-    @FXML private Label lblWelcome;
+    @FXML
+    private Label lblUsername;
+    @FXML
+    private Label lblBalance;
+    @FXML
+    private TextField txtSearch;
+    @FXML
+    private ListView<String> searchList;
+    @FXML
+    private VBox searchDropdown;
+    @FXML
+    private Label lblWelcome;
+    @FXML
+    private Label lblBalanceVal;
+    @FXML
+    private Label lblSidebarBalance;
+
+
+    private GUIClientManager networkManager = GUIClientManager.getInstance();
 
     private long balance = 50000;
 
@@ -51,11 +67,14 @@ public class BidderDashboardController {
             }
         }
     }
+
     @FXML
     public void initialize() {
         updateBalanceLabel();
         loadProducts();
         setupSearch();
+        GUIClientManager.getInstance().startConnection("localhost", 1234);
+        GUIClientManager.getInstance().setController(this);
     }
 
     private void loadProducts() {
@@ -230,18 +249,26 @@ public class BidderDashboardController {
             Parent root = loader.load();
             AuctionRoomController controller = loader.getController();
             controller.setCurrentUser(lblUsername.getText().replace("Tên tài khoản: ", ""));
+            controller.setBalance(this.balance);
+            GUIClientManager.getInstance().setController(controller);
+            GUIClientManager.getInstance().sendRequestHistory(new RequestHistoryMessage());
             Stage stage = (Stage) lblUsername.getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
             stage.setTitle("Phòng Đấu Giá Trực Tiếp - Live!");
             stage.centerOnScreen();
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML
-    public void handleJoinAuction(ActionEvent event) { openAuctionRoom(); }
+    public void handleJoinAuction(ActionEvent event) {
+        openAuctionRoom();
+    }
 
     @FXML
     public void handleDeposit(ActionEvent event) {
+
         Stage popup = new Stage();
         popup.setTitle("Nạp tiền");
         popup.initModality(Modality.APPLICATION_MODAL);
@@ -262,7 +289,8 @@ public class BidderDashboardController {
         HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         StackPane iconBox = new StackPane();
-        iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
+        iconBox.setMinSize(32, 32);
+        iconBox.setMaxSize(32, 32);
         iconBox.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8;");
         Label iconLabel = new Label("🏦");
         iconLabel.setStyle("-fx-font-size: 15;");
@@ -287,7 +315,7 @@ public class BidderDashboardController {
         VBox balanceText = new VBox(2);
         Label lblBalanceTitle = new Label("Số dư hiện tại");
         lblBalanceTitle.setStyle("-fx-font-size: 11; -fx-text-fill: #94aac8;");
-        Label lblBalanceVal = new Label(String.format("%,d VNĐ", balance));
+        lblBalanceVal = new Label(String.format("%,d VNĐ", balance));
         lblBalanceVal.setStyle("-fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: #1976D2;");
         balanceText.getChildren().addAll(lblBalanceTitle, lblBalanceVal);
         balanceBox.getChildren().addAll(icoBalance, balanceText);
@@ -296,7 +324,8 @@ public class BidderDashboardController {
         VBox boxQuick = new VBox(8);
         HBox lblQuickRow = new HBox(6);
         lblQuickRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoQuick = new Label("⚡"); icoQuick.setStyle("-fx-font-size: 12;");
+        Label icoQuick = new Label("⚡");
+        icoQuick.setStyle("-fx-font-size: 12;");
         Label lblQuick = new Label("Chọn nhanh");
         lblQuick.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;");
         lblQuickRow.getChildren().addAll(icoQuick, lblQuick);
@@ -326,10 +355,12 @@ public class BidderDashboardController {
         VBox boxAmount = new VBox(6);
         HBox lblAmountRow = new HBox(6);
         lblAmountRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoAmt = new Label("💵"); icoAmt.setStyle("-fx-font-size: 12;");
+        Label icoAmt = new Label("💵");
+        icoAmt.setStyle("-fx-font-size: 12;");
         Label lblAmt = new Label("Số tiền nạp");
         lblAmt.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1e3154;");
-        Label star = new Label("*"); star.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+        Label star = new Label("*");
+        star.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
         lblAmountRow.getChildren().addAll(icoAmt, lblAmt, star);
 
         HBox inputRow = new HBox(0);
@@ -380,11 +411,17 @@ public class BidderDashboardController {
         btnConfirm.setOnAction(e -> {
             String input = txtAmount.getText().trim().replace(",", "");
             if (input.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập số tiền!"); return;
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập số tiền!");
+                return;
             }
             try {
                 long amount = Long.parseLong(input);
-                if (amount <= 0) { showAlert(Alert.AlertType.ERROR, "Lỗi", "Số tiền phải lớn hơn 0!"); return; }
+                //sendDepositRequestToNetwork(amount);
+                if (amount <= 0) {
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Số tiền phải lớn hơn 0!");
+                    return;
+                }
+                sendDepositRequestToNetwork(amount); // them de ho tro cho phan admin thay so tien user muon nap
                 showAlert(Alert.AlertType.INFORMATION, "Đã gửi yêu cầu",
                         String.format("Yêu cầu nạp %,d VNĐ đã được ghi nhận!\nVui lòng chờ Admin xác nhận.", amount));
                 popup.close();
@@ -401,6 +438,8 @@ public class BidderDashboardController {
         scene.setFill(Color.TRANSPARENT);
         popup.setScene(scene);
         popup.showAndWait();
+
+
     }
 
     @FXML
@@ -425,7 +464,8 @@ public class BidderDashboardController {
         HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         StackPane iconBox = new StackPane();
-        iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
+        iconBox.setMinSize(32, 32);
+        iconBox.setMaxSize(32, 32);
         iconBox.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8;");
         Label iconLabel = new Label("🏷️");
         iconLabel.setStyle("-fx-font-size: 15;");
@@ -449,9 +489,12 @@ public class BidderDashboardController {
         VBox boxCat = new VBox(6);
         HBox lblCatRow = new HBox(6);
         lblCatRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoCat = new Label("📂"); icoCat.setStyle("-fx-font-size: 12;");
-        Label lblCat = new Label("Danh mục"); lblCat.setStyle(labelStyle);
-        Label starCat = new Label("*"); starCat.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+        Label icoCat = new Label("📂");
+        icoCat.setStyle("-fx-font-size: 12;");
+        Label lblCat = new Label("Danh mục");
+        lblCat.setStyle(labelStyle);
+        Label starCat = new Label("*");
+        starCat.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
         lblCatRow.getChildren().addAll(icoCat, lblCat, starCat);
         ComboBox<String> cmbCategory = new ComboBox<>();
         cmbCategory.setItems(FXCollections.observableArrayList("Electronics", "Art", "Vehicle"));
@@ -465,9 +508,12 @@ public class BidderDashboardController {
         VBox boxName = new VBox(6);
         HBox lblNameRow = new HBox(6);
         lblNameRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoName = new Label("🏷️"); icoName.setStyle("-fx-font-size: 12;");
-        Label lblName = new Label("Tên sản phẩm"); lblName.setStyle(labelStyle);
-        Label starName = new Label("*"); starName.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+        Label icoName = new Label("🏷️");
+        icoName.setStyle("-fx-font-size: 12;");
+        Label lblName = new Label("Tên sản phẩm");
+        lblName.setStyle(labelStyle);
+        Label starName = new Label("*");
+        starName.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
         lblNameRow.getChildren().addAll(icoName, lblName, starName);
         TextField txtName = new TextField();
         txtName.setPromptText("Nhập tên sản phẩm...");
@@ -478,8 +524,10 @@ public class BidderDashboardController {
         VBox boxDesc = new VBox(6);
         HBox lblDescRow = new HBox(6);
         lblDescRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoDesc = new Label("📝"); icoDesc.setStyle("-fx-font-size: 12;");
-        Label lblDesc = new Label("Mô tả"); lblDesc.setStyle(labelStyle);
+        Label icoDesc = new Label("📝");
+        icoDesc.setStyle("-fx-font-size: 12;");
+        Label lblDesc = new Label("Mô tả");
+        lblDesc.setStyle(labelStyle);
         lblDescRow.getChildren().addAll(icoDesc, lblDesc);
         TextArea txtDesc = new TextArea();
         txtDesc.setPromptText("Nhập mô tả sản phẩm...");
@@ -492,9 +540,12 @@ public class BidderDashboardController {
         VBox boxPrice = new VBox(6);
         HBox lblPriceRow = new HBox(6);
         lblPriceRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoPrice = new Label("💰"); icoPrice.setStyle("-fx-font-size: 12;");
-        Label lblPrice = new Label("Giá khởi điểm"); lblPrice.setStyle(labelStyle);
-        Label starPrice = new Label("*"); starPrice.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+        Label icoPrice = new Label("💰");
+        icoPrice.setStyle("-fx-font-size: 12;");
+        Label lblPrice = new Label("Giá khởi điểm");
+        lblPrice.setStyle(labelStyle);
+        Label starPrice = new Label("*");
+        starPrice.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
         lblPriceRow.getChildren().addAll(icoPrice, lblPrice, starPrice);
         HBox priceRow = new HBox(0);
         priceRow.setAlignment(Pos.CENTER_LEFT);
@@ -519,8 +570,10 @@ public class BidderDashboardController {
         boxExtra.setManaged(false);
         HBox lblExtraRow = new HBox(6);
         lblExtraRow.setAlignment(Pos.CENTER_LEFT);
-        Label icoExtra = new Label("🔧"); icoExtra.setStyle("-fx-font-size: 12;");
-        Label lblExtra = new Label(""); lblExtra.setStyle(labelStyle);
+        Label icoExtra = new Label("🔧");
+        icoExtra.setStyle("-fx-font-size: 12;");
+        Label lblExtra = new Label("");
+        lblExtra.setStyle(labelStyle);
         lblExtraRow.getChildren().addAll(icoExtra, lblExtra);
         TextField txtExtra = new TextField();
         txtExtra.setStyle(inputStyle);
@@ -531,14 +584,20 @@ public class BidderDashboardController {
             if (cat == null) return;
             switch (cat) {
                 case "Electronics":
-                    icoExtra.setText("🛡️"); lblExtra.setText("Bảo hành (tháng):");
-                    txtExtra.setPromptText("VD: 12"); break;
+                    icoExtra.setText("🛡️");
+                    lblExtra.setText("Bảo hành (tháng):");
+                    txtExtra.setPromptText("VD: 12");
+                    break;
                 case "Art":
-                    icoExtra.setText("🎨"); lblExtra.setText("Tên nghệ sĩ:");
-                    txtExtra.setPromptText("VD: Van Gogh"); break;
+                    icoExtra.setText("🎨");
+                    lblExtra.setText("Tên nghệ sĩ:");
+                    txtExtra.setPromptText("VD: Van Gogh");
+                    break;
                 case "Vehicle":
-                    icoExtra.setText("📅"); lblExtra.setText("Năm sản xuất:");
-                    txtExtra.setPromptText("VD: 2024"); break;
+                    icoExtra.setText("📅");
+                    lblExtra.setText("Năm sản xuất:");
+                    txtExtra.setPromptText("VD: 2024");
+                    break;
             }
             boxExtra.setVisible(true);
             boxExtra.setManaged(true);
@@ -570,7 +629,8 @@ public class BidderDashboardController {
                 "-fx-effect: dropshadow(three-pass-box, rgba(59,130,246,0.35), 10, 0, 0, 3);");
         btnSave.setOnAction(e -> {
             if (txtName.getText().isEmpty() || cmbCategory.getValue() == null || txtPrice.getText().isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc!"); return;
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc!");
+                return;
             }
             try {
                 double startPrice = Double.parseDouble(txtPrice.getText().trim().replace(",", ""));
@@ -601,16 +661,61 @@ public class BidderDashboardController {
             stage.setScene(new Scene(root, 1000, 700));
             stage.setTitle("Đăng nhập hệ thống");
             stage.centerOnScreen();
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateBalanceLabel() {
         lblBalance.setText(String.format("Số dư: %,d VNĐ", balance));
+        if (lblSidebarBalance != null) {
+            lblSidebarBalance.setText(String.format("%,d VNĐ", balance)); // sẽ hoạt động sau khi thêm fx:id
+        }
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
-        alert.setTitle(title); alert.setHeaderText(null); alert.setContentText(message);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
         alert.showAndWait();
     }
+
+    // === PHẦN CỦA THÀNH VIÊN 3 (NETWORK) - CHỈ THÊM MỚI ===
+    // === PHẦN CỦA THÀNH VIÊN 3 (NETWORK) - BẢN THÊM THỜI GIAN & TRẠNG THÁI ===
+// === PHẦN CỦA THÀNH VIÊN 3 (NETWORK) - BẢN THÊM THỜI GIAN & TRẠNG THÁI ===
+    public void sendDepositRequestToNetwork(double amount) {
+        try {
+            // 1. Lấy tên user (Giữ nguyên logic của cậu)
+            String username = lblUsername.getText().replace("Tên TK: ", "").trim();
+
+            // --- THÊM: Tự động lấy thời gian thực của máy tính (Định dạng Giờ:Phút Ngày/Tháng) ---
+            String currentTime = new java.text.SimpleDateFormat("HH:mm dd/MM").format(new java.util.Date());
+            String initialStatus = "Chờ duyệt";
+
+            // 2. Tạo gói tin mới với đầy đủ 4 thông tin
+            TopUpMessage request = new TopUpMessage(username, amount, currentTime, initialStatus);
+
+            // 3. Bắn lên Server
+            GUIClientManager.getInstance().sendTopUp(request);
+
+            System.out.println(">>> [NETWORK] Da gui yeu cau nap " + amount + " | Thoi gian: " + currentTime);
+
+        } catch (Exception e) {
+            System.err.println(">>> [NETWORK] LOI KHI GUI TIN: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    // === PHẦN CỦA THÀNH VIÊN 3 (NETWORK)
+    public void handleNetworkTopUpSuccess(double amount) {
+        try {
+            this.balance += amount; // 1. Cộng tiền vào biến chung (Đã chạy đúng)
+            updateBalanceLabel();   // 2. Gọi hàm để tự động đổi chữ cả góc trên và sidebar Trang chủ!
+            System.out.println(">>> [NETWORK] Đã đồng bộ số dư mới: " + this.balance);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+// =======================================================================
+// =======================================================================
 }

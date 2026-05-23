@@ -27,6 +27,8 @@ public class Auction implements Serializable {
     // Danh sách người quan sát
     private List<AuctionObserver> observers = new ArrayList<>();
 
+    private List<Bid> bidHistory = new ArrayList<>(); // Sổ cái lưu lịch sử đặt giá trên Server
+
     public Auction(double starPrice,long durationMillis) {
         this.currentPrice = starPrice;
         this.endTime = System.currentTimeMillis() + durationMillis;
@@ -79,6 +81,7 @@ public class Auction implements Serializable {
 
             currentPrice = bidAmount;
             highestBidder = bidder;
+            bidHistory.add(bid);
             System.out.println("New bid :" + currentPrice + "by" + highestBidder.getFullName());
 
             // --- KÍCH HOẠT OBSERVER CHO NGƯỜI ĐẶT ---
@@ -127,4 +130,5 @@ public class Auction implements Serializable {
     public Bidder getHighestBidder() {return highestBidder;}
     public Double getCurrentPrice() {return currentPrice;}
     public boolean isClosed() {return closed;}
+    public List<Bid> getBidHistory() {return bidHistory;}
 }

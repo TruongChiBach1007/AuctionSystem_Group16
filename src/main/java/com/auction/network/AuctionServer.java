@@ -33,6 +33,7 @@ public class AuctionServer {
 
 
     public static void broadcast(Object message) {
+        System.out.println(">>> [SERVER] Dang phat loa goi tin: " + message.getClass().getSimpleName());
         for (ClientHandler client : clients) {
             client.sendToClient(message);
         }
