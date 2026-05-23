@@ -155,7 +155,7 @@
                 <Region VBox.vgrow="ALWAYS"/>
 
                 <VBox spacing="10">
-                    <Button fx:id="btnSave" text="💾 LƯU SẢN PHẨM" onAction="#handleSave"
+                    <Button fx:id="btnSave" text="💾 ĐĂNG SẢN PHẨM" onAction="#handleSave"
                             maxWidth="Infinity" styleClass="btn-success" style="-fx-padding: 12;"/>
                     <Button text="↩️ Hủy bỏ" onAction="#handleCancel"
                             maxWidth="Infinity" styleClass="btn-secondary" style="-fx-padding: 10;"/>

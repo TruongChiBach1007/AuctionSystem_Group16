@@ -139,7 +139,7 @@ public class SellerDashboardController {
     private void loadItemToForm(Item item) {
         if (item == null) return;
         selectedItem = item;
-        lblFormTitle.setText("SUA SAN PHAM");
+        lblFormTitle.setText("SỬA SẢN PHẨM");
         txtName.setText(item.getName());
         txtDescription.setText(item.getDescription());
         txtStartPrice.setText(String.valueOf(item.getStartingPrice()));
@@ -184,7 +184,7 @@ public class SellerDashboardController {
     @FXML
     public void handleAdd(ActionEvent event) {
         clearForm();
-        lblFormTitle.setText("THEM SAN PHAM");
+        lblFormTitle.setText("THÊM SẢN PHẨM");
         selectedItem = null;
     }
 
@@ -196,11 +196,11 @@ public class SellerDashboardController {
         if (selectedItem != null) {
             int index = itemList.indexOf(selectedItem);
             itemList.set(index, item);
-            showAlert(Alert.AlertType.INFORMATION, "Thanh cong", "Da cap nhat san pham.");
+            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã cập nhật sản phầm.");
         } else {
             itemList.add(item);
             auctionClient.send(new AuctionMessage(MessageType.ITEM_REQUEST, item));
-            showAlert(Alert.AlertType.INFORMATION, "Thanh cong", "Da gui san pham cho Admin duyet.");
+            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đẫ gửi sản phầm cho admin duyệt.");
         }
 
         clearForm();
@@ -210,7 +210,7 @@ public class SellerDashboardController {
     private Item buildItemFromForm() {
         if (txtName.getText().isBlank() || cmbCategory.getValue() == null
                 || txtStartPrice.getText().isBlank()) {
-            showAlert(Alert.AlertType.ERROR, "Loi", "Vui long nhap ten, danh muc va gia.");
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên, danh mục và giá.");
             return null;
         }
 
@@ -250,7 +250,7 @@ public class SellerDashboardController {
             return item;
 
         } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Loi", "Gia hoac thong tin them phai la so.");
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Gia hoac thong tin them phai la so.");
             return null;
         }
     }
@@ -297,7 +297,7 @@ public class SellerDashboardController {
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1000, 700));
-            stage.setTitle("Dang nhap he thong");
+            stage.setTitle("Đăng nhập hệ thống");
             stage.centerOnScreen();
         } catch (IOException e) {
             e.printStackTrace();
@@ -345,6 +345,6 @@ public class SellerDashboardController {
     public void initData(String username, String fullName) {
         sellerUsername = username;
         sellerName = fullName == null || fullName.isBlank() ? username : fullName;
-        lblUsername.setText("Ten tai khoan: " + sellerName.toUpperCase());
+        lblUsername.setText("Tên tài khoản: " + sellerName.toUpperCase());
     }
 }

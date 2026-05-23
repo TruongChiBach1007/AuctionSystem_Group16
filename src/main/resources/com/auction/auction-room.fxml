@@ -70,11 +70,14 @@
 
             <Separator style="-fx-opacity: 0.5;"/>
 
-            <VBox spacing="10" styleClass="card" style="-fx-background-color: #dbeafe; -fx-border-color: #dbeafe; -fx-padding: 15; -fx-background-radius: 10;">
-                <Label text="SỐ DƯ HIỆN TẠI" style="-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;"/>
+
+            <VBox spacing="10" styleClass="card" style="-fx-background-color: #d6daec; -fx-border-color: #dfe5ef; -fx-padding: 15; -fx-background-radius: 10;">
+                <Label text="SỐ DƯ HIỆN TẠI" style="-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: #294cd8;"/>
                 <HBox alignment="CENTER_LEFT" spacing="10">
                     <Label text="💰" style="-fx-font-size: 18;"/>
-                    <Label fx:id="lblCurrentBalance" text="0 VNĐ" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;"/>
+
+                    <Label fx:id="lblCurrentBalance" text="0 VNĐ" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #294cd8;"/>
+
                 </HBox>
             </VBox>
 

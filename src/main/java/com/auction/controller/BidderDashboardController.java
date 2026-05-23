@@ -666,6 +666,7 @@ public class BidderDashboardController {
         );
 
         // Footer
+        // --- 1. Tạo Footer ---
         HBox footer = makeFooter(popup, () -> {
             Item item = buildItemFromForm(
                     cmbCategory.getValue(), txtName.getText(),
@@ -682,7 +683,21 @@ public class BidderDashboardController {
             popup.close();
         }, "🏷️  Đăng sản phẩm");
 
-        root.getChildren().addAll(header, body, new Separator(), footer);
+
+        // --- 2. BỌC BODY VÀO SCROLLPANE Ở ĐÂY ---
+        ScrollPane scrollBody = new ScrollPane(body);
+        scrollBody.setFitToWidth(true);
+        scrollBody.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollBody.setStyle("-fx-background-color: transparent; -fx-background: white; -fx-border-color: transparent;");
+
+        // (Tuỳ chọn: Nếu em muốn giới hạn chiều cao tổng của popup, em có thể
+        // dùng dòng này để báo cho ScrollPane biết chiều cao kỳ vọng của nội dung hiển thị)
+        scrollBody.setPrefViewportHeight(400);
+
+        // --- 3. Add SCROLLBODY vào Root thay vì Body nguyên thủy ---
+        root.getChildren().addAll(header, scrollBody, new Separator(), footer);
+
+        // --- 4. Hiển thị Popup ---
         popup.setScene(new Scene(root));
         popup.showAndWait();
     }
@@ -711,7 +726,7 @@ public class BidderDashboardController {
         iconBox.setMinSize(32, 32); iconBox.setMaxSize(32, 32);
         iconBox.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8;");
         iconBox.getChildren().add(new Label("🏦"));
-        Label lblTitle = new Label("Nạp tiền qua VNPay");
+        Label lblTitle = new Label("Nạp tiền ");
         lblTitle.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;");
         titleRow.getChildren().addAll(iconBox, lblTitle);
         header.getChildren().addAll(lblSub, titleRow);

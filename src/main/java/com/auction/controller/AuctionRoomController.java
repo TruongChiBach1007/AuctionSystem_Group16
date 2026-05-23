@@ -48,6 +48,7 @@ public class AuctionRoomController {
     @FXML private TextField maxBidField;
     @FXML private TextField stepBidField;
     @FXML private Tooltip autoBidTooltip;
+    @FXML private Label lblCurrentBalance;
 
     private final ObservableList<Bid> bidHistory = FXCollections.observableArrayList();
     private XYChart.Series<Number, Number> series;
@@ -66,7 +67,13 @@ public class AuctionRoomController {
             this.currentUser = new Bidder(1, username, "pass", username, username + "@gmail.com", 500000.0);
         }
         if (statusLabel != null) {
-            statusLabel.setText("Chao mung " + currentUser.getUsername() + "! San sang dau gia.");
+            statusLabel.setText("Chào mừng " + currentUser.getUsername() + "! Sẵn sàng đấu giá.");
+        }
+        updateBalanceUI();
+    }
+    public void updateBalanceUI() {
+        if (currentUser != null && lblCurrentBalance != null) {
+            lblCurrentBalance.setText(String.format("%,.0f VNĐ", currentUser.getBalance()));
         }
     }
 
@@ -74,13 +81,13 @@ public class AuctionRoomController {
         this.auctionItem = item;
         this.currentHighestBid = item.getCurrentPrice();
         if (series != null) {
-            series.setName("Bien dong gia " + item.getName());
+            series.setName("Biến động giá " + item.getName());
             series.getData().clear();
             bidCount = 0;
             series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
         }
         if (statusLabel != null) {
-            statusLabel.setText("Gia hien tai cua " + item.getName() + ": " + String.format("%,.0f VND", currentHighestBid));
+            statusLabel.setText("Giá hiện tại của " + item.getName() + ": " + String.format("%,.0f VND", currentHighestBid));
         }
     }
 
@@ -92,11 +99,11 @@ public class AuctionRoomController {
         auctionTable.setItems(bidHistory);
 
         series = new XYChart.Series<>();
-        series.setName("Bien dong gia iPhone 15 Pro Max");
+        series.setName("Biến động giá Iphone 15 Pro Max");
         priceChart.getData().add(series);
         series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
 
-        statusLabel.setText("Gia khoi diem la: VND " + String.format("%.0f", currentHighestBid));
+        statusLabel.setText("Giá khởi điểm là: VND " + String.format("%.0f", currentHighestBid));
         startCountdown();
     }
 
@@ -107,7 +114,7 @@ public class AuctionRoomController {
                 updateClockDisplay();
             } else {
                 timeline.stop();
-                statusLabel.setText("Phien dau gia da ket thuc!");
+                statusLabel.setText("Phiên đấu giá đã kết thúc!");
                 bidInput.setDisable(true);
             }
         }));
@@ -137,15 +144,22 @@ public class AuctionRoomController {
         series.getData().add(new XYChart.Data<>(bidCount, currentHighestBid));
         bidHistory.add(0, new Bid(bidderName, newBid));
 
+        // Nếu người đặt giá là user hiện tại hoặc là hệ thống Auto của user đó
+        if (currentUser != null && (bidderName.equals(currentUser.getUsername()) || bidderName.equals("He thong (Auto)"))) {
+            currentUser.setBalance(currentUser.getBalance() - newBid);
+            updateBalanceUI(); // Tiền trên màn hình sẽ tự động tụt xuống
+        }
+        // ------------------------------------
+
         if (totalSeconds < 10) {
             totalSeconds += 15;
             updateClockDisplay();
         }
 
-        statusLabel.setText(bidderName + " dat gia thanh cong: " + String.format("%.0f", newBid) + " VND");
+        statusLabel.setText(bidderName + " đặt giá thành công: " + String.format("%,.0f", newBid) + " VND");
         statusLabel.setStyle("-fx-text-fill: #27ae60;");
 
-        if (!bidderName.equals("He thong (Auto)")) {
+        if (!bidderName.equals("Hệ thống (Auto)")) {
             checkAndExecuteAutoBid(currentHighestBid);
         }
     }
@@ -164,7 +178,7 @@ public class AuctionRoomController {
                 double myNewBid = latestPrice + step;
                 if (myNewBid <= limit) {
                     Timeline robotThinking = new Timeline(new KeyFrame(Duration.seconds(1.5), ev ->
-                            executeBidLogic(myNewBid, "He thong (Auto)")
+                            executeBidLogic(myNewBid, "Hệ thống (Auto)")
                     ));
                     robotThinking.play();
                 }
@@ -205,7 +219,7 @@ public class AuctionRoomController {
             }
 
             if (newBid <= currentHighestBid) {
-                statusLabel.setText("Gia phai cao hon VND " + String.format("%.0f", currentHighestBid));
+                statusLabel.setText("Giá phải cao hơn VND " + String.format("%.0f", currentHighestBid));
                 statusLabel.setStyle("-fx-text-fill: #e74c3c;");
                 return;
             }
@@ -217,12 +231,12 @@ public class AuctionRoomController {
             }
 
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setTitle("Xac nhan dat gia");
+            confirm.setTitle("Xác nhận đặt giá");
             confirm.setHeaderText(null);
-            confirm.setContentText("Ban co chac chan muon dat gia " + String.format("%.0f", newBid) + " VND khong?");
+            confirm.setContentText("Bạn có chắc muốn đặt giá " + String.format("%.0f", newBid) + " VND không?");
 
             if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-                statusLabel.setText("Da huy dat gia.");
+                statusLabel.setText("Đã hủy đặt giá.");
                 statusLabel.setStyle("-fx-text-fill: #e67e22;");
                 return;
             }
@@ -250,7 +264,7 @@ public class AuctionRoomController {
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Trang Chu - San Dau Gia");
+            stage.setTitle("Trang chủ - Sàn đấu giá");
             stage.centerOnScreen();
         } catch (IOException e) {
             e.printStackTrace();

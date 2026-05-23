@@ -37,7 +37,7 @@ public class DatabaseConnection {
         itemTable.add(iphone);
 
 // Honda Civic 2024
-        Vehicle honda = new Vehicle("item-2", "Honda Civic 2024", "Honda Civic RS 2024, màu đỏ, 5000km", 720000000, 720000000);
+        Vehicle honda = new Vehicle("item-2", "Honda Civic 2024", "Xe cũ của Sơn Tùng MTP, bị ngập nước", 720000000, 720000000);
         honda.setImageUrl(getClass().getResource("/com/auction/images/honda.jpg").toExternalForm());
         honda.setStatus(ItemStatus.APPROVED);
         honda.setSellerName("admin");
