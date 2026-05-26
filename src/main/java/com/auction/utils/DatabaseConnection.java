@@ -30,14 +30,14 @@ public class DatabaseConnection {
         userTable.add(new Bidder(4, "hminh", "123", "Trần Hoàng Minh", "hminh@uet.com", 500000.0));
 
         // iPhone 15 Pro Max
-        Electronics iphone = new Electronics("item-1", "iPhone 15 Pro Max", "iPhone 15 Pro Max 256GB titan tự nhiên", 35000000, 35000000);
+        Electronics iphone = new Electronics("item-1", "iPhone 15 Pro Max", "iPhone 15 Pro Max 256GB titan tự nhiên", 50000, 50000);
         iphone.setImageUrl(getClass().getResource("/com/auction/images/iphone.jpg").toExternalForm());
         iphone.setStatus(ItemStatus.APPROVED);
         iphone.setSellerName("admin");
         itemTable.add(iphone);
 
 // Honda Civic 2024
-        Vehicle honda = new Vehicle("item-2", "Honda Civic 2024", "Xe cũ của Sơn Tùng MTP, bị ngập nước", 720000000, 720000000);
+        Vehicle honda = new Vehicle("item-2", "Honda Civic 2024", "Xe cũ của Sơn Tùng MTP, bị ngập nước", 50000, 50000);
         honda.setImageUrl(getClass().getResource("/com/auction/images/honda.jpg").toExternalForm());
         honda.setStatus(ItemStatus.APPROVED);
         honda.setSellerName("admin");

@@ -1,5 +1,7 @@
 package com.auction.network;
 
+import com.auction.model.core.Bid;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -47,9 +49,28 @@ public class ClientHandler implements Runnable {
             case DEPOSIT_REQUEST -> AuctionServer.handleDepositRequest(message.getDepositRequest());
             case APPROVE_DEPOSIT -> AuctionServer.approveDeposit(message.getDepositId());
             case REJECT_DEPOSIT -> AuctionServer.rejectDeposit(message.getDepositId());
-            default -> {
-                // Other message types are server-to-client only.
+
+            case BID -> {
+                Bid bid = message.getBid();
+                if (bid != null) {
+                    // [FIX 1+2] Lưu bid và cập nhật endTime nếu anti-sniping
+                    AuctionServer.handleBid(bid);
+                    // Tạo message mới với remainingSeconds cập nhật để tất cả client đồng bộ đồng hồ
+                    int remaining = AuctionServer.getRemainingSeconds();
+                    AuctionMessage syncedMessage = new AuctionMessage(MessageType.BID, bid, remaining);
+                    AuctionServer.broadcast(syncedMessage);
+                }
             }
+
+            case AUCTION_ENDED -> {
+                // [FIX 3] Client báo hết giờ → server phát AUCTION_ENDED chính thức cho tất cả
+                // Chỉ xử lý message "timer_end" từ client (tránh loop)
+                if ("timer_end".equals(message.getWinnerName())) {
+                    AuctionServer.broadcastAuctionEnded();
+                }
+            }
+
+            default -> { /* Other message types are server-to-client only */ }
         }
     }
 
@@ -57,12 +78,14 @@ public class ClientHandler implements Runnable {
         try {
             out.writeObject(message);
             out.flush();
+            out.reset();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void closeConnection() {
+        AuctionServer.removeClient(this);
         try {
             if (in != null) in.close();
             if (out != null) out.close();

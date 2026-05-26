@@ -18,5 +18,11 @@ public enum MessageType implements Serializable {
     REJECT_DEPOSIT,
     DEPOSIT_APPROVED,
     DEPOSIT_REJECTED,
+    BID,
+    BID_HISTORY,
+    // [FIX 1] Gửi snapshot lịch sử + giá hiện tại cho người mới vào phòng
+    SYNC_BID_HISTORY,
+    // [FIX 3] Phát tín hiệu kết thúc phiên kèm tên người thắng
+    AUCTION_ENDED,
     ERROR
 }
