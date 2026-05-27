@@ -241,7 +241,7 @@ public class BidderDashboardController {
                     + "-fx-text-fill: #2c3e50; -fx-padding: 6 8; "
                     + "-fx-alignment: CENTER_LEFT; -fx-font-size: 12;");
             btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> openAuctionRoom(item));
+            btn.setOnAction(e -> showProductDetail(item));
             container.getChildren().add(btn);
         });
     }
@@ -299,7 +299,7 @@ public class BidderDashboardController {
             arrow.setStyle("-fx-text-fill: #94aac8; -fx-font-size: 16;");
 
             row.getChildren().addAll(iconBox, text, arrow);
-            row.setOnMouseClicked(e -> openAuctionRoom(item));
+            row.setOnMouseClicked(e -> showProductDetail(item));
             historyBox.getChildren().add(row);
             idx[0]++;
         });
