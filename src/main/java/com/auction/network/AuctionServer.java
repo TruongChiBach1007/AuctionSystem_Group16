@@ -28,7 +28,6 @@ public class AuctionServer {
     private static final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
     private static final List<ClientHandler> admins = new CopyOnWriteArrayList<>();
     private static final List<ClientHandler> bidders = new CopyOnWriteArrayList<>();
-    private static final List<ClientHandler> sellers = new CopyOnWriteArrayList<>();
     private static final Map<String, Item> pendingItems = new ConcurrentHashMap<>();
     private static final Map<String, Item> approvedItems = new ConcurrentHashMap<>();
     private static final Map<String, DepositRequest> pendingDeposits = new ConcurrentHashMap<>();
@@ -125,17 +124,12 @@ public class AuctionServer {
         }
     }
 
-    public static void registerSeller(ClientHandler client) {
-        sellers.add(client);
-    }
-
     public static void handleItemRequest(Item item) {
         if (item == null || item.getId() == null) return;
         item.setStatus(ItemStatus.PENDING);
         pendingItems.put(item.getId(), item);
         upsertItemInDatabase(item);
         broadcastToAdmins(new AuctionMessage(MessageType.ITEM_PENDING, item));
-        broadcastToSellers(new AuctionMessage(MessageType.ITEM_PENDING, item));
     }
 
     public static void approveItem(String itemId) {
@@ -282,16 +276,9 @@ public class AuctionServer {
         }
     }
 
-    private static void broadcastToSellers(Object message) {
-        for (ClientHandler seller : sellers) {
-            seller.sendToClient(message);
-        }
-    }
-
     public static void removeClient(ClientHandler client) {
         clients.remove(client);
         admins.remove(client);
         bidders.remove(client);
-        sellers.remove(client);
     }
 }

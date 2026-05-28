@@ -7,7 +7,6 @@ import com.auction.model.items.ItemStatus;
 import com.auction.model.items.Vehicle;
 import com.auction.model.users.Admin;
 import com.auction.model.users.Bidder;
-import com.auction.model.users.Seller;
 import com.auction.model.users.User;
 
 import java.util.ArrayList;
@@ -25,7 +24,7 @@ public class DatabaseConnection {
         depositRequestTable = new ArrayList<>();
 
         userTable.add(new Bidder(1, "dung123", "123", "Nguyễn Việt Dũng", "dung@uet.edu.vn", 500000.0));
-        userTable.add(new Seller(2, "bach123", "123", "Trương Chí Bách", "bach@uet.edu.vn"));
+        userTable.add(new Bidder(2, "bach123", "123", "Trương Chí Bách", "bach@uet.edu.vn", 500000.0));
         userTable.add(new Admin(3, "admin", "123", "Admin", "admin@auction.com", 1));
         userTable.add(new Bidder(4, "hminh", "123", "Trần Hoàng Minh", "hminh@uet.com", 500000.0));
 
@@ -36,7 +35,7 @@ public class DatabaseConnection {
         iphone.setSellerName("admin");
         itemTable.add(iphone);
 
-// Honda Civic 2024
+        // Honda Civic 2024
         Vehicle honda = new Vehicle("item-2", "Honda Civic 2024", "Xe cũ của Sơn Tùng MTP, bị ngập nước", 800000000, 800000000);
         honda.setImageUrl(getClass().getResource("/com/auction/images/honda.jpg").toExternalForm());
         honda.setStatus(ItemStatus.APPROVED);

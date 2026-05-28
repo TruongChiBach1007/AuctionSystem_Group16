@@ -44,7 +44,6 @@ public class ClientHandler implements Runnable {
         switch (message.getType()) {
             case REGISTER_ADMIN -> AuctionServer.registerAdmin(this);
             case REGISTER_BIDDER -> AuctionServer.registerBidder(this);
-            case REGISTER_SELLER -> AuctionServer.registerSeller(this);
             case ITEM_REQUEST -> AuctionServer.handleItemRequest(message.getItem());
             case APPROVE_ITEM -> AuctionServer.approveItem(message.getItemId());
             case REJECT_ITEM -> AuctionServer.rejectItem(message.getItemId());

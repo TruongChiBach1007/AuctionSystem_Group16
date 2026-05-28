@@ -1,8 +1,6 @@
 package com.auction.controller;
 
 import com.auction.model.users.Admin;
-import com.auction.model.users.Bidder;
-import com.auction.model.users.Seller;
 import com.auction.model.users.User;
 import com.auction.security.AuthService;
 import javafx.event.ActionEvent;
@@ -34,7 +32,6 @@ public class LoginController {
             return;
         }
 
-        // Gọi AuthService thật thay vì if/else hardcode
         AuthService auth = AuthService.getInstance();
         boolean success = auth.login(username, password);
 
@@ -45,12 +42,9 @@ public class LoginController {
 
         User currentUser = auth.getCurrentUser();
 
-        // Phân quyền theo role
         if (currentUser instanceof Admin) {
             chuyenManHinhAdmin(event, currentUser);
-        } else if (currentUser instanceof Seller) {
-            chuyenManHinhSeller(event, currentUser);
-        } else  {
+        } else {
             chuyenManHinhBidder(event, currentUser);
         }
     }
@@ -94,30 +88,12 @@ public class LoginController {
             e.printStackTrace();
         }
     }
-    private void chuyenManHinhSeller(ActionEvent event, User user) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/seller-dashboard.fxml"));
-            Parent root = loader.load();
-
-            SellerDashboardController controller = loader.getController();
-            controller.initData(user.getUsername(), user.getFullName());
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root, 1200, 700));
-            stage.setTitle("Trang Chủ - Chào " + user.getFullName().toUpperCase());
-            stage.centerOnScreen();
-            stage.show();
-
-        } catch (IOException e) {
-            hienThiLoi("Lỗi hệ thống: Không tải được giao diện!");
-            e.printStackTrace();
-        }
-    }
 
     private void hienThiLoi(String thongBao) {
         messageLabel.setText(thongBao);
         messageLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
     }
+
     @FXML
     public void handleRegister(ActionEvent event) {
         try {

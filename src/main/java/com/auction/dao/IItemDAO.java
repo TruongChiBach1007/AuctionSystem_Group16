@@ -5,7 +5,7 @@ import com.auction.model.items.ItemStatus;
 import java.util.List;
 
 public interface IItemDAO {
-    // 1. Seller dùng hàm này để đăng sản phẩm mới
+    // 1. Dùng hàm này để đăng sản phẩm mới
     boolean addItem(Item item);
 
     // 2. Hàm lọc sản phẩm theo trạng thái (Ví dụ: Tìm tất cả hàng PENDING cho Admin, hoặc APPROVED cho Bidder)
