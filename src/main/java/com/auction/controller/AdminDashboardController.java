@@ -108,7 +108,7 @@ public class AdminDashboardController {
         if (auctionClient == null) {
             connectSocket();
         }
-        lblAdminName.setText("Admin " + name.toUpperCase());
+        lblAdminName.setText("Xin chào " + name);
         updateOverview();
     }
 

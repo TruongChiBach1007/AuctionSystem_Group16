@@ -113,27 +113,6 @@ release/auction-system-group16.jar
 
 ## ▶️ Cách chạy chương trình
 
-### Cách 1: Chạy trực tiếp file JAR nộp bài
-
-```bash
-java -jar release/auction-system-group16.jar
-```
-
-Khi chạy bằng lệnh trên, ứng dụng sẽ:
-
-1. Tự khởi động Auction Server nền trên port `1234`.
-2. Mở giao diện JavaFX Client.
-3. Cho phép mở thêm nhiều client bằng cách chạy lại cùng lệnh ở nhiều terminal khác nhau.
-
-Để demo nhiều client:
-
-```bash
-java -jar release/auction-system-group16.jar
-java -jar release/auction-system-group16.jar
-java -jar release/auction-system-group16.jar
-```
-
-### Cách 2: Chạy server riêng, client riêng
 
 Chạy server:
 
@@ -146,7 +125,13 @@ Sau đó mở client:
 ```bash
 java -jar release/auction-system-group16.jar
 ```
+Để demo nhiều client:
 
+```bash
+java -jar release/auction-system-group16.jar
+java -jar release/auction-system-group16.jar
+java -jar release/auction-system-group16.jar
+```
 ---
 
 ## 🔐 Tài khoản mẫu
