@@ -1,5 +1,6 @@
 package com.auction.controller;
 
+import com.auction.dao.ItemDAOImpl;
 import com.auction.model.items.Art;
 import com.auction.model.items.Electronics;
 import com.auction.model.items.Item;
@@ -55,6 +56,7 @@ public class SellerDashboardController {
     private final ObservableList<Item> itemList = FXCollections.observableArrayList();
     private Item selectedItem;
     private AuctionClient auctionClient;
+    private final ItemDAOImpl itemDAO = new ItemDAOImpl();
     private String sellerName = "Seller";
     private String sellerUsername = "Seller";
     private String selectedImagePath = ""; // lưu URI thật của ảnh
@@ -84,10 +86,36 @@ public class SellerDashboardController {
     private void connectSocket() {
         auctionClient = new AuctionClient();
         try {
-            auctionClient.connect(MessageType.REGISTER_SELLER, message -> {});
+            auctionClient.connect(MessageType.REGISTER_SELLER, this::handleSocketMessage);
         } catch (IOException e) {
             System.out.println("Seller cannot connect socket: " + e.getMessage());
         }
+    }
+
+    private void handleSocketMessage(AuctionMessage message) {
+        if (message == null || message.getType() == null || message.getItem() == null) return;
+        javafx.application.Platform.runLater(() -> {
+            Item item = message.getItem();
+            if (item.getSellerUsername() == null
+                    || !item.getSellerUsername().equalsIgnoreCase(sellerUsername)) {
+                return;
+            }
+            if (message.getType() == MessageType.ITEM_PENDING
+                    || message.getType() == MessageType.ITEM_APPROVED
+                    || message.getType() == MessageType.ITEM_REJECTED) {
+                upsertItemInTable(item);
+            }
+        });
+    }
+
+    private void upsertItemInTable(Item item) {
+        for (int i = 0; i < itemList.size(); i++) {
+            if (item.getId().equals(itemList.get(i).getId())) {
+                itemList.set(i, item);
+                return;
+            }
+        }
+        itemList.add(item);
     }
 
     // ── CHỌN ẢNH TỪ MÁY (giống BidderDashboard) ──
@@ -130,9 +158,9 @@ public class SellerDashboardController {
         txtExtra.setManaged(true);
 
         switch (category) {
-            case "Electronics" -> { lblExtra.setText("Bao hanh (thang):"); txtExtra.setPromptText("VD: 12"); }
-            case "Art"         -> { lblExtra.setText("Ten nghe si:");       txtExtra.setPromptText("VD: Van Gogh"); }
-            case "Vehicle"     -> { lblExtra.setText("Dung tich dong co:"); txtExtra.setPromptText("VD: 1.5"); }
+            case "Electronics" -> { lblExtra.setText("Bảo hành (tháng):"); txtExtra.setPromptText("VD: 12"); }
+            case "Art"         -> { lblExtra.setText("Tên nghệ sĩ:");       txtExtra.setPromptText("VD: Van Gogh"); }
+            case "Vehicle"     -> { lblExtra.setText("Dung tích động cơ:"); txtExtra.setPromptText("VD: 1.5"); }
         }
     }
 
@@ -196,11 +224,18 @@ public class SellerDashboardController {
         if (selectedItem != null) {
             int index = itemList.indexOf(selectedItem);
             itemList.set(index, item);
-            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã cập nhật sản phầm.");
+            itemDAO.updateItem(item);
+            if (auctionClient != null) {
+                auctionClient.send(new AuctionMessage(MessageType.ITEM_REQUEST, item));
+            }
+            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã cập nhật sản phẩm.");
         } else {
-            itemList.add(item);
-            auctionClient.send(new AuctionMessage(MessageType.ITEM_REQUEST, item));
-            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đẫ gửi sản phầm cho admin duyệt.");
+            upsertItemInTable(item);
+            itemDAO.addItem(item);
+            if (auctionClient != null) {
+                auctionClient.send(new AuctionMessage(MessageType.ITEM_REQUEST, item));
+            }
+            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã gửi sản phẩm cho admin duyệt.");
         }
 
         clearForm();
@@ -250,7 +285,7 @@ public class SellerDashboardController {
             return item;
 
         } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Gia hoac thong tin them phai la so.");
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá hoặc thông tin thêm phải là số.");
             return null;
         }
     }
@@ -259,7 +294,7 @@ public class SellerDashboardController {
     public void handleEdit(ActionEvent event) {
         Item selected = tableItems.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon san pham de sua.");
+            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để sửa.");
             return;
         }
         loadItemToForm(selected);
@@ -269,15 +304,18 @@ public class SellerDashboardController {
     public void handleDelete(ActionEvent event) {
         Item selected = tableItems.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert(Alert.AlertType.WARNING, "Chua chon", "Vui long chon san pham de xoa.");
+            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để xóa.");
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Xac nhan xoa");
+        confirm.setTitle("Xác nhận xóa");
         confirm.setHeaderText(null);
-        confirm.setContentText("Xoa san pham \"" + selected.getName() + "\"?");
+        confirm.setContentText("Xóa sản phẩm \"" + selected.getName() + "\"?");
         confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) itemList.remove(selected);
+            if (response == ButtonType.OK) {
+                itemList.remove(selected);
+                itemDAO.deleteItem(selected.getId());
+            }
         });
     }
 
@@ -285,7 +323,7 @@ public class SellerDashboardController {
     public void handleCancel(ActionEvent event) {
         clearForm();
         selectedItem = null;
-        lblFormTitle.setText("THEM SAN PHAM");
+        lblFormTitle.setText("THÊM SẢN PHẨM");
     }
 
     @FXML
@@ -346,5 +384,10 @@ public class SellerDashboardController {
         sellerUsername = username;
         sellerName = fullName == null || fullName.isBlank() ? username : fullName;
         lblUsername.setText("Tên tài khoản: " + sellerName.toUpperCase());
+        loadSellerItems();
+    }
+
+    private void loadSellerItems() {
+        itemList.setAll(itemDAO.getItemsBySeller(sellerUsername));
     }
 }

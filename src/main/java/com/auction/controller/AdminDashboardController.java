@@ -2,6 +2,7 @@ package com.auction.controller;
 
 import com.auction.model.core.DepositRequest;
 import com.auction.model.core.DepositStatus;
+import com.auction.model.core.AuctionSummary;
 import com.auction.model.items.Item;
 import com.auction.model.items.ItemStatus;
 import com.auction.model.users.Bidder;
@@ -72,13 +73,19 @@ public class AdminDashboardController {
     @FXML private TableColumn<DepositRequest, String> colDepositStatus;
 
     // ── Auction table ──
-    @FXML private TableView tableAuctions;
+    @FXML private TableView<AuctionSummary> tableAuctions;
+    @FXML private TableColumn<AuctionSummary, String> colAuctionProduct;
+    @FXML private TableColumn<AuctionSummary, String> colAuctionPrice;
+    @FXML private TableColumn<AuctionSummary, String> colAuctionLeader;
+    @FXML private TableColumn<AuctionSummary, String> colAuctionTime;
+    @FXML private TableColumn<AuctionSummary, String> colAuctionStatus;
 
     @FXML private VBox recentActivityBox;
 
     private final ObservableList<User> userList = FXCollections.observableArrayList();
     private final ObservableList<Item> pendingItems = FXCollections.observableArrayList();
     private final ObservableList<DepositRequest> pendingDeposits = FXCollections.observableArrayList();
+    private final ObservableList<AuctionSummary> auctionList = FXCollections.observableArrayList();
     private AuctionClient auctionClient;
 
     @FXML
@@ -93,6 +100,7 @@ public class AdminDashboardController {
         setupUserTable();
         setupProductTable();
         setupDepositTable();
+        setupAuctionTable();
         updateOverview();
     }
 
@@ -154,6 +162,16 @@ public class AdminDashboardController {
         tableDeposits.setItems(pendingDeposits);
     }
 
+    private void setupAuctionTable() {
+        if (tableAuctions == null) return;
+        colAuctionProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
+        colAuctionPrice.setCellValueFactory(new PropertyValueFactory<>("currentPriceText"));
+        colAuctionLeader.setCellValueFactory(new PropertyValueFactory<>("leaderName"));
+        colAuctionTime.setCellValueFactory(new PropertyValueFactory<>("remainingTimeText"));
+        colAuctionStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        tableAuctions.setItems(auctionList);
+    }
+
     // ─────────────────────────────────────────────
     //  SOCKET
     // ─────────────────────────────────────────────
@@ -186,11 +204,23 @@ public class AdminDashboardController {
                     || message.getType() == MessageType.DEPOSIT_REJECTED)
                     && message.getDepositRequest() != null) {
                 pendingDeposits.removeIf(r -> r.getId().equals(message.getDepositRequest().getId()));
+            } else if (message.getType() == MessageType.SYNC_AUCTIONS
+                    && message.getAuctionSummaries() != null) {
+                auctionList.setAll(message.getAuctionSummaries());
+            } else if ((message.getType() == MessageType.AUCTION_OPENED
+                    || message.getType() == MessageType.AUCTION_STOPPED)
+                    && message.getAuctionSummary() != null) {
+                upsertAuction(message.getAuctionSummary());
             } else if (message.getType() == MessageType.ERROR) {
                 showAlert(Alert.AlertType.ERROR, "Socket error", message.getMessage());
             }
             updateOverview();
         });
+    }
+
+    private void upsertAuction(AuctionSummary summary) {
+        auctionList.removeIf(existing -> existing.getItemId().equals(summary.getItemId()));
+        auctionList.add(0, summary);
     }
 
     // ─────────────────────────────────────────────
@@ -363,6 +393,10 @@ public class AdminDashboardController {
         confirm.setContentText("Bạn có chắc muốn dừng phiên đấu giá này không?");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
+                AuctionSummary selected = tableAuctions.getSelectionModel().getSelectedItem();
+                if (auctionClient != null && selected != null) {
+                    auctionClient.send(new AuctionMessage(MessageType.AUCTION_STOPPED, selected.getItemId(), true));
+                }
                 showAlert(Alert.AlertType.INFORMATION, "Đã dừng",
                         "Phiên đấu giá đã được dừng thủ công!");
             }

@@ -72,9 +72,9 @@ public class Bid implements Serializable {
     public String getStatusText() {
         if (status == null) return "UNKNOWN";
         return switch (status) {
-            case PENDING -> "Cho duyet";
-            case APPROVED -> "Da duyet";
-            case REJECTED -> "Tu choi";
+            case PENDING -> "Chờ duyệt";
+            case APPROVED -> "Đã duyệt";
+            case REJECTED -> "Từ chối";
         };
     }
 }

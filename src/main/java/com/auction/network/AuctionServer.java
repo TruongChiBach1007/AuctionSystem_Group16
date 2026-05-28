@@ -1,14 +1,15 @@
 package com.auction.network;
 
+import com.auction.model.core.AuctionSummary;
 import com.auction.model.core.Bid;
 import com.auction.model.core.DepositRequest;
 import com.auction.model.core.DepositStatus;
-import com.auction.model.core.Auction;
 import com.auction.model.items.Item;
 import com.auction.model.items.ItemStatus;
 import com.auction.model.users.Bidder;
 import com.auction.model.users.User;
 import com.auction.utils.DatabaseConnection;
+
 import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
@@ -21,6 +22,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class AuctionServer {
     private static final int PORT = 1234;
+    private static final int AUCTION_DURATION_SECONDS = 600;
+    private static final int SNIPING_EXTEND_SECONDS = 15;
+
     private static final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
     private static final List<ClientHandler> admins = new CopyOnWriteArrayList<>();
     private static final List<ClientHandler> bidders = new CopyOnWriteArrayList<>();
@@ -28,18 +32,39 @@ public class AuctionServer {
     private static final Map<String, Item> pendingItems = new ConcurrentHashMap<>();
     private static final Map<String, Item> approvedItems = new ConcurrentHashMap<>();
     private static final Map<String, DepositRequest> pendingDeposits = new ConcurrentHashMap<>();
-    private static final Auction auction = new Auction(10000.0, 3600000);
+    private static final Map<String, AuctionSession> auctionSessions = new ConcurrentHashMap<>();
     private static boolean started = false;
 
-    // [FIX 1] Lưu lịch sử bid và giá cao nhất để sync cho người mới vào
-    private static final List<Bid> globalBidHistory = new CopyOnWriteArrayList<>();
-    private static volatile double currentHighestBid = 10000.0;
-    private static volatile String currentHighestBidderName = null;
+    private static class AuctionSession {
+        private final Item item;
+        private final List<Bid> bidHistory = new CopyOnWriteArrayList<>();
+        private volatile double currentHighestBid;
+        private volatile String currentHighestBidderName;
+        private volatile long endTimeMillis;
+        private volatile boolean stopped;
 
-    // [SYNC TIMER] Lưu thời điểm kết thúc phiên — client mới join sẽ nhận số giây còn lại thực tế
-    private static final int AUCTION_DURATION_SECONDS = 600; // 10 phút, khớp với client
-    private static volatile long auctionEndTimeMillis = System.currentTimeMillis() + AUCTION_DURATION_SECONDS * 1000L;
-    private static final int SNIPING_EXTEND_SECONDS = 15; // Gia hạn khi có bid trong 10s cuối
+        private AuctionSession(Item item) {
+            this.item = item;
+            this.currentHighestBid = item.getCurrentPrice();
+            this.endTimeMillis = System.currentTimeMillis() + AUCTION_DURATION_SECONDS * 1000L;
+        }
+
+        private int remainingSeconds() {
+            return (int) Math.max(0, (endTimeMillis - System.currentTimeMillis()) / 1000);
+        }
+
+        private AuctionSummary toSummary() {
+            String status = stopped || remainingSeconds() <= 0 ? "Đã dừng" : "Đang mở";
+            return new AuctionSummary(
+                    item.getId(),
+                    item.getName(),
+                    currentHighestBid,
+                    currentHighestBidderName,
+                    remainingSeconds(),
+                    status
+            );
+        }
+    }
 
     public static void main(String[] args) {
         runServer();
@@ -54,6 +79,7 @@ public class AuctionServer {
     }
 
     private static void runServer() {
+        loadApprovedItems();
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println(">>> Auction Server is running on port " + PORT + "...");
             while (true) {
@@ -71,6 +97,16 @@ public class AuctionServer {
         }
     }
 
+    private static void loadApprovedItems() {
+        for (Item item : DatabaseConnection.getInstance().getItemTable()) {
+            if (item.getStatus() == ItemStatus.APPROVED) {
+                approvedItems.put(item.getId(), item);
+            } else if (item.getStatus() == ItemStatus.PENDING) {
+                pendingItems.put(item.getId(), item);
+            }
+        }
+    }
+
     public static void registerAdmin(ClientHandler client) {
         admins.add(client);
         for (Item item : pendingItems.values()) {
@@ -79,6 +115,7 @@ public class AuctionServer {
         for (DepositRequest request : pendingDeposits.values()) {
             client.sendToClient(new AuctionMessage(MessageType.DEPOSIT_PENDING, request));
         }
+        client.sendToClient(new AuctionMessage(MessageType.SYNC_AUCTIONS, getAuctionSummaries()));
     }
 
     public static void registerBidder(ClientHandler client) {
@@ -86,12 +123,6 @@ public class AuctionServer {
         for (Item item : approvedItems.values()) {
             client.sendToClient(new AuctionMessage(MessageType.ITEM_APPROVED, item));
         }
-        // [SYNC TIMER] Tính số giây còn lại thực tế trên server
-        int remainingSeconds = (int) Math.max(0, (auctionEndTimeMillis - System.currentTimeMillis()) / 1000);
-
-        // [FIX 1] Luôn gửi SYNC_BID_HISTORY (kể cả khi chưa có bid nào) để đồng bộ đồng hồ
-        List<Bid> snapshot = new ArrayList<>(globalBidHistory);
-        client.sendToClient(new AuctionMessage(MessageType.SYNC_BID_HISTORY, snapshot, currentHighestBid, remainingSeconds));
     }
 
     public static void registerSeller(ClientHandler client) {
@@ -99,10 +130,12 @@ public class AuctionServer {
     }
 
     public static void handleItemRequest(Item item) {
-        if (item == null) return;
+        if (item == null || item.getId() == null) return;
         item.setStatus(ItemStatus.PENDING);
         pendingItems.put(item.getId(), item);
+        upsertItemInDatabase(item);
         broadcastToAdmins(new AuctionMessage(MessageType.ITEM_PENDING, item));
+        broadcastToSellers(new AuctionMessage(MessageType.ITEM_PENDING, item));
     }
 
     public static void approveItem(String itemId) {
@@ -110,7 +143,7 @@ public class AuctionServer {
         if (item == null) return;
         item.setStatus(ItemStatus.APPROVED);
         approvedItems.put(item.getId(), item);
-        DatabaseConnection.getInstance().getItemTable().add(item);
+        upsertItemInDatabase(item);
         broadcast(new AuctionMessage(MessageType.ITEM_APPROVED, item));
     }
 
@@ -118,6 +151,7 @@ public class AuctionServer {
         Item item = pendingItems.remove(itemId);
         if (item == null) return;
         item.setStatus(ItemStatus.REJECTED);
+        upsertItemInDatabase(item);
         broadcast(new AuctionMessage(MessageType.ITEM_REJECTED, item));
     }
 
@@ -144,28 +178,87 @@ public class AuctionServer {
         broadcast(new AuctionMessage(MessageType.DEPOSIT_REJECTED, request));
     }
 
-    // [FIX 1 + 2] Xử lý BID: lưu lịch sử, cập nhật giá cao nhất, gia hạn nếu anti-sniping
-    public static synchronized void handleBid(Bid bid) {
-        if (bid == null) return;
-        globalBidHistory.add(0, bid);
-        currentHighestBid = bid.getAmount();
-        currentHighestBidderName = bid.getBidderName();
-
-        // [SYNC TIMER] Anti-sniping: nếu bid trong 10s cuối → gia hạn server endTime
-        long remaining = auctionEndTimeMillis - System.currentTimeMillis();
-        if (remaining <= 10_000) {
-            auctionEndTimeMillis += SNIPING_EXTEND_SECONDS * 1000L;
-            System.out.println(">>> [SERVER] Anti-sniping! Gia hạn thêm " + SNIPING_EXTEND_SECONDS + "s");
+    public static synchronized void openAuction(Item item, ClientHandler requester) {
+        if (item == null || item.getId() == null) return;
+        approvedItems.putIfAbsent(item.getId(), item);
+        AuctionSession session = auctionSessions.computeIfAbsent(item.getId(), id -> new AuctionSession(item));
+        requester.sendToClient(new AuctionMessage(
+                MessageType.SYNC_BID_HISTORY,
+                item.getId(),
+                new ArrayList<>(session.bidHistory),
+                session.currentHighestBid,
+                session.remainingSeconds()
+        ));
+        if (session.stopped || session.remainingSeconds() <= 0) {
+            requester.sendToClient(new AuctionMessage(
+                    MessageType.AUCTION_ENDED,
+                    item.getId(),
+                    session.currentHighestBidderName != null ? session.currentHighestBidderName : "Không có",
+                    session.currentHighestBid,
+                    true
+            ));
         }
-
-        System.out.println(">>> [SERVER] Giá mới: " + currentHighestBid + " bởi " + currentHighestBidderName);
+        broadcastToAdmins(new AuctionMessage(MessageType.AUCTION_OPENED, session.toSummary()));
     }
 
-    // [FIX 3] Phát tín hiệu kết thúc phiên cho tất cả client
-    public static void broadcastAuctionEnded() {
-        String winner = currentHighestBidderName != null ? currentHighestBidderName : "Không có";
-        broadcast(new AuctionMessage(MessageType.AUCTION_ENDED, winner, currentHighestBid, true));
-        System.out.println(">>> [SERVER] Phiên kết thúc! Người thắng: " + winner + " - Giá: " + currentHighestBid);
+    public static synchronized void handleBid(String itemId, Bid bid) {
+        if (itemId == null || bid == null || bid.getBidder() == null) return;
+        AuctionSession session = auctionSessions.get(itemId);
+        if (session == null || session.stopped || session.remainingSeconds() <= 0) return;
+        if (bid.getAmount() <= session.currentHighestBid) return;
+        if (bid.getBidder().getBalance() < bid.getAmount()) return;
+
+        session.bidHistory.add(0, bid);
+        session.currentHighestBid = bid.getAmount();
+        session.currentHighestBidderName = bid.getBidderName();
+        session.item.setCurrentPrice(bid.getAmount());
+        upsertItemInDatabase(session.item);
+
+        long remaining = session.endTimeMillis - System.currentTimeMillis();
+        if (remaining <= 10_000) {
+            session.endTimeMillis += SNIPING_EXTEND_SECONDS * 1000L;
+            System.out.println(">>> [SERVER] Anti-sniping cho " + session.item.getName()
+                    + ": gia hạn thêm " + SNIPING_EXTEND_SECONDS + "s");
+        }
+
+        int remainingSeconds = session.remainingSeconds();
+        AuctionServer.broadcast(new AuctionMessage(MessageType.BID, itemId, bid, remainingSeconds));
+        broadcastToAdmins(new AuctionMessage(MessageType.AUCTION_OPENED, session.toSummary()));
+    }
+
+    public static synchronized void stopAuction(String itemId) {
+        AuctionSession session = auctionSessions.get(itemId);
+        if (session == null) return;
+        session.stopped = true;
+        broadcast(new AuctionMessage(
+                MessageType.AUCTION_ENDED,
+                itemId,
+                session.currentHighestBidderName != null ? session.currentHighestBidderName : "Không có",
+                session.currentHighestBid,
+                true
+        ));
+        broadcastToAdmins(new AuctionMessage(MessageType.AUCTION_STOPPED, session.toSummary()));
+    }
+
+    public static synchronized void broadcastAuctionEnded(String itemId) {
+        stopAuction(itemId);
+    }
+
+    private static List<AuctionSummary> getAuctionSummaries() {
+        return auctionSessions.values().stream()
+                .map(AuctionSession::toSummary)
+                .toList();
+    }
+
+    private static void upsertItemInDatabase(Item item) {
+        List<Item> items = DatabaseConnection.getInstance().getItemTable();
+        for (int i = 0; i < items.size(); i++) {
+            if (item.getId().equals(items.get(i).getId())) {
+                items.set(i, item);
+                return;
+            }
+        }
+        items.add(item);
     }
 
     private static void addBalance(String username, long amount) {
@@ -189,16 +282,16 @@ public class AuctionServer {
         }
     }
 
+    private static void broadcastToSellers(Object message) {
+        for (ClientHandler seller : sellers) {
+            seller.sendToClient(message);
+        }
+    }
+
     public static void removeClient(ClientHandler client) {
         clients.remove(client);
         admins.remove(client);
         bidders.remove(client);
         sellers.remove(client);
-    }
-
-    public static double getCurrentHighestBid() { return currentHighestBid; }
-    public static String getCurrentHighestBidderName() { return currentHighestBidderName; }
-    public static int getRemainingSeconds() {
-        return (int) Math.max(0, (auctionEndTimeMillis - System.currentTimeMillis()) / 1000);
     }
 }

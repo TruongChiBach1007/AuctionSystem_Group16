@@ -19,6 +19,14 @@ public class ItemDAOImpl implements IItemDAO {
         if (item == null) {
             return false;
         }
+        if (item.getId() != null) {
+            for (int i = 0; i < itemTable.size(); i++) {
+                if (item.getId().equals(itemTable.get(i).getId())) {
+                    itemTable.set(i, item);
+                    return true;
+                }
+            }
+        }
         itemTable.add(item);
         return true;
     }

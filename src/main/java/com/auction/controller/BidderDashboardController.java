@@ -110,6 +110,7 @@ public class BidderDashboardController {
 
     public void setUserInfo(String username, String fullName) {
         currentUsername = username.replace("Tên tài khoản: ", "")
+                .replace("Tên tài khoản: ", "")
                 .replace("Ten tai khoan: ", "").trim();
         displayName = fullName == null || fullName.isBlank() ? currentUsername : fullName.trim();
         lblUsername.setText(displayName);
@@ -793,7 +794,7 @@ public class BidderDashboardController {
             try {
                 long amount = Long.parseLong(input);
                 if (amount <= 0) {
-                    showAlert(Alert.AlertType.ERROR, "Loi", "So tien phai lon hon 0!");
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Số tiền phải lớn hơn 0!");
                     return;
                 }
                 DepositRequest request = new DepositRequest(currentUsername, amount);

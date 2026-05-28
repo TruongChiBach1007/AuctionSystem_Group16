@@ -30,7 +30,7 @@ public class DepositRequest implements Serializable {
     public void setStatus(DepositStatus status) { this.status = status; }
 
     public String getAmountText() {
-        return String.format("%,d VND", amount);
+        return String.format("%,d VNĐ", amount);
     }
 
     public String getRequestTimeText() {
@@ -40,9 +40,9 @@ public class DepositRequest implements Serializable {
     public String getStatusText() {
         if (status == null) return "UNKNOWN";
         return switch (status) {
-            case PENDING -> "Cho duyet";
-            case APPROVED -> "Da duyet";
-            case REJECTED -> "Tu choi";
+            case PENDING -> "Chờ duyệt";
+            case APPROVED -> "Đã duyệt";
+            case REJECTED -> "Từ chối";
         };
     }
 }

@@ -97,6 +97,7 @@ public class AuctionRoomController {
         if (statusLabel != null) {
             statusLabel.setText("Giá hiện tại của " + item.getName() + ": " + String.format("%,.0f VND", currentHighestBid));
         }
+        client.send(new AuctionMessage(MessageType.AUCTION_OPENED, item));
     }
 
     @FXML
@@ -135,6 +136,10 @@ public class AuctionRoomController {
     // [FIX 1+2+3] Xử lý tất cả message nhận từ server
     private void handleServerMessage(AuctionMessage msg) {
         Platform.runLater(() -> {
+            if (auctionItem != null && msg.getItemId() != null
+                    && !auctionItem.getId().equals(msg.getItemId())) {
+                return;
+            }
             switch (msg.getType()) {
 
                 // [FIX 1] Nhận snapshot lịch sử khi vừa vào phòng
@@ -211,6 +216,7 @@ public class AuctionRoomController {
                 case AUCTION_ENDED -> {
                     if (timeline != null) timeline.stop();
                     bidInput.setDisable(true);
+                    if (autoBidCheckBox != null) autoBidCheckBox.setDisable(true);
                     autoBidCheckBox.setSelected(false);
 
                     String winner = msg.getWinnerName();
@@ -267,6 +273,7 @@ public class AuctionRoomController {
                 // bằng cách gửi 1 message đặc biệt lên server
                 try {
                     client.send(new AuctionMessage(MessageType.AUCTION_ENDED,
+                            auctionItem != null ? auctionItem.getId() : null,
                             "timer_end", 0.0, true));
                 } catch (Exception ex) {
                     // Nếu offline, xử lý local
@@ -325,7 +332,10 @@ public class AuctionRoomController {
                     // [FIX] Dùng đúng Bidder object như đặt tay bình thường, không dùng tên "Hệ thống"
                     Timeline robotThinking = new Timeline(new KeyFrame(Duration.seconds(1.5), ev -> {
                         Bid autoBid = new Bid(currentUser, myNewBid);
-                        AuctionMessage packet = new AuctionMessage(MessageType.BID, autoBid);
+                        AuctionMessage packet = new AuctionMessage(
+                                MessageType.BID,
+                                auctionItem != null ? auctionItem.getId() : null,
+                                autoBid);
                         try {
                             client.send(packet);
                         } catch (Exception ex) {
@@ -411,7 +421,10 @@ public class AuctionRoomController {
 
             if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
                 Bid bidData = new Bid(bidder, newBid);
-                AuctionMessage packet = new AuctionMessage(MessageType.BID, bidData);
+                AuctionMessage packet = new AuctionMessage(
+                        MessageType.BID,
+                        auctionItem != null ? auctionItem.getId() : null,
+                        bidData);
 
                 try {
                     // [FIX 2] Gọi đúng instance method thay vì static

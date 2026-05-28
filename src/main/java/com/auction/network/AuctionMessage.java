@@ -1,6 +1,7 @@
 package com.auction.network;
 
 import com.auction.model.core.Bid;
+import com.auction.model.core.AuctionSummary;
 import com.auction.model.core.DepositRequest;
 import com.auction.model.items.Item;
 
@@ -15,12 +16,14 @@ public class AuctionMessage implements Serializable {
     private String bidId;
     private Item item;
     private String itemId;
+    private AuctionSummary auctionSummary;
     private DepositRequest depositRequest;
     private String depositId;
     private String message;
 
     // [FIX 1] Danh sách lịch sử bid để gửi cho người mới vào
     private List<Bid> bidList;
+    private List<AuctionSummary> auctionSummaries;
 
     // [FIX 3] Thông tin người thắng khi kết thúc phiên
     private String winnerName;
@@ -39,9 +42,24 @@ public class AuctionMessage implements Serializable {
         this.bidId = bid != null ? bid.getId() : null;
     }
 
+    public AuctionMessage(MessageType type, String itemId, Bid bid) {
+        this.type = type;
+        this.itemId = itemId;
+        this.bid = bid;
+        this.bidId = bid != null ? bid.getId() : null;
+    }
+
     // Constructor BID kèm remainingSeconds để client đồng bộ đồng hồ sau mỗi lần có bid
     public AuctionMessage(MessageType type, Bid bid, int remainingSeconds) {
         this.type = type;
+        this.bid = bid;
+        this.bidId = bid != null ? bid.getId() : null;
+        this.remainingSeconds = remainingSeconds;
+    }
+
+    public AuctionMessage(MessageType type, String itemId, Bid bid, int remainingSeconds) {
+        this.type = type;
+        this.itemId = itemId;
         this.bid = bid;
         this.bidId = bid != null ? bid.getId() : null;
         this.remainingSeconds = remainingSeconds;
@@ -89,9 +107,35 @@ public class AuctionMessage implements Serializable {
         this.remainingSeconds = remainingSeconds;
     }
 
+    public AuctionMessage(MessageType type, String itemId, List<Bid> bidList, double currentHighestBid, int remainingSeconds) {
+        this.type = type;
+        this.itemId = itemId;
+        this.bidList = bidList;
+        this.winnerAmount = currentHighestBid;
+        this.remainingSeconds = remainingSeconds;
+    }
+
+    public AuctionMessage(MessageType type, AuctionSummary auctionSummary) {
+        this.type = type;
+        this.auctionSummary = auctionSummary;
+        this.itemId = auctionSummary != null ? auctionSummary.getItemId() : null;
+    }
+
+    public AuctionMessage(MessageType type, List<AuctionSummary> auctionSummaries) {
+        this.type = type;
+        this.auctionSummaries = auctionSummaries;
+    }
+
     // [FIX 3] Constructor gửi kết thúc phiên
     public AuctionMessage(MessageType type, String winnerName, double winnerAmount, boolean isAuctionEnd) {
         this.type = type;
+        this.winnerName = winnerName;
+        this.winnerAmount = winnerAmount;
+    }
+
+    public AuctionMessage(MessageType type, String itemId, String winnerName, double winnerAmount, boolean isAuctionEnd) {
+        this.type = type;
+        this.itemId = itemId;
         this.winnerName = winnerName;
         this.winnerAmount = winnerAmount;
     }
@@ -101,10 +145,12 @@ public class AuctionMessage implements Serializable {
     public String getBidId() { return bidId; }
     public Item getItem() { return item; }
     public String getItemId() { return itemId; }
+    public AuctionSummary getAuctionSummary() { return auctionSummary; }
     public String getMessage() { return message; }
     public DepositRequest getDepositRequest() { return depositRequest; }
     public String getDepositId() { return depositId; }
     public List<Bid> getBidList() { return bidList; }
+    public List<AuctionSummary> getAuctionSummaries() { return auctionSummaries; }
     public String getWinnerName() { return winnerName; }
     public double getWinnerAmount() { return winnerAmount; }
     public int getRemainingSeconds() { return remainingSeconds; }

@@ -2,11 +2,13 @@ package com.auction.network;
 
 import com.auction.model.core.Bid;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
-    private Socket socket;
+    private final Socket socket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
 
@@ -25,8 +27,8 @@ public class ClientHandler implements Runnable {
         try {
             while (true) {
                 Object obj = in.readObject();
-                if (obj instanceof AuctionMessage) {
-                    processMessage((AuctionMessage) obj);
+                if (obj instanceof AuctionMessage message) {
+                    processMessage(message);
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
@@ -49,28 +51,20 @@ public class ClientHandler implements Runnable {
             case DEPOSIT_REQUEST -> AuctionServer.handleDepositRequest(message.getDepositRequest());
             case APPROVE_DEPOSIT -> AuctionServer.approveDeposit(message.getDepositId());
             case REJECT_DEPOSIT -> AuctionServer.rejectDeposit(message.getDepositId());
-
+            case AUCTION_OPENED -> AuctionServer.openAuction(message.getItem(), this);
+            case AUCTION_STOPPED -> AuctionServer.stopAuction(message.getItemId());
             case BID -> {
                 Bid bid = message.getBid();
                 if (bid != null) {
-                    // [FIX 1+2] Lưu bid và cập nhật endTime nếu anti-sniping
-                    AuctionServer.handleBid(bid);
-                    // Tạo message mới với remainingSeconds cập nhật để tất cả client đồng bộ đồng hồ
-                    int remaining = AuctionServer.getRemainingSeconds();
-                    AuctionMessage syncedMessage = new AuctionMessage(MessageType.BID, bid, remaining);
-                    AuctionServer.broadcast(syncedMessage);
+                    AuctionServer.handleBid(message.getItemId(), bid);
                 }
             }
-
             case AUCTION_ENDED -> {
-                // [FIX 3] Client báo hết giờ → server phát AUCTION_ENDED chính thức cho tất cả
-                // Chỉ xử lý message "timer_end" từ client (tránh loop)
                 if ("timer_end".equals(message.getWinnerName())) {
-                    AuctionServer.broadcastAuctionEnded();
+                    AuctionServer.broadcastAuctionEnded(message.getItemId());
                 }
             }
-
-            default -> { /* Other message types are server-to-client only */ }
+            default -> { }
         }
     }
 
@@ -89,7 +83,7 @@ public class ClientHandler implements Runnable {
         try {
             if (in != null) in.close();
             if (out != null) out.close();
-            if (socket != null) socket.close();
+            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
