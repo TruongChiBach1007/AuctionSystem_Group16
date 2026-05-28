@@ -33,7 +33,9 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class BidderDashboardController {
@@ -81,6 +83,7 @@ public class BidderDashboardController {
     private AuctionClient auctionClient;
     private String currentUsername = "Bidder";
     private String displayName = "Bidder";
+    private final Set<String> closedAuctionIds = new HashSet<>();
 
     // ─────────────────────────────────────────────
     //  INIT
@@ -148,6 +151,11 @@ public class BidderDashboardController {
                     && message.getDepositRequest() != null
                     && currentUsername.equalsIgnoreCase(message.getDepositRequest().getUsername())) {
                 // Admin rejected the request; keep the bidder balance unchanged.
+            } else if ((message.getType() == MessageType.AUCTION_ENDED
+                    || message.getType() == MessageType.AUCTION_STOPPED)
+                    && message.getItemId() != null) {
+                closedAuctionIds.add(message.getItemId());
+                renderAll();
             }
         });
     }
@@ -347,8 +355,9 @@ public class BidderDashboardController {
         imagePane.getChildren().addAll(bg, imageContent);
 
         // Badge "Hot" / "Mới"
-        Label badge = new Label("Live");
-        badge.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; "
+        boolean closed = isAuctionClosed(item);
+        Label badge = new Label(closed ? "Đóng" : "Live");
+        badge.setStyle("-fx-background-color: " + (closed ? "#64748b" : "#22c55e") + "; -fx-text-fill: white; "
                 + "-fx-font-size: 10; -fx-font-weight: bold; "
                 + "-fx-background-radius: 6; -fx-padding: 3 8;");
         StackPane.setAlignment(badge, Pos.TOP_LEFT);
@@ -371,9 +380,9 @@ public class BidderDashboardController {
         HBox statusBox = new HBox(5);
         statusBox.setAlignment(Pos.CENTER_LEFT);
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4);
-        dot.setStyle("-fx-fill: #27ae60;");
-        Label statusLbl = new Label("Đang diễn ra");
-        statusLbl.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 11;");
+        dot.setStyle("-fx-fill: " + (closed ? "#64748b" : "#27ae60") + ";");
+        Label statusLbl = new Label(closed ? "Đã đóng" : "Đang diễn ra");
+        statusLbl.setStyle("-fx-text-fill: " + (closed ? "#64748b" : "#27ae60") + "; -fx-font-size: 11;");
         statusBox.getChildren().addAll(dot, statusLbl);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -385,6 +394,10 @@ public class BidderDashboardController {
         card.getChildren().addAll(imagePane, body);
         card.setOnMouseClicked(e -> showProductDetail(item));
         return card;
+    }
+
+    private boolean isAuctionClosed(Item item) {
+        return item != null && closedAuctionIds.contains(item.getId());
     }
 
     // ─────────────────────────────────────────────

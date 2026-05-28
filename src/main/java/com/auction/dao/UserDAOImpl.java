@@ -33,5 +33,6 @@ public class UserDAOImpl implements IUserDAO {
     @Override
     public void addUser(User user) {
         userTable.add(user);
+        DatabaseConnection.getInstance().save();
     }
 }

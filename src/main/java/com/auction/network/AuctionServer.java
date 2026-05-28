@@ -122,6 +122,17 @@ public class AuctionServer {
         for (Item item : approvedItems.values()) {
             client.sendToClient(new AuctionMessage(MessageType.ITEM_APPROVED, item));
         }
+        for (AuctionSession session : auctionSessions.values()) {
+            if (session.stopped || session.remainingSeconds() <= 0) {
+                client.sendToClient(new AuctionMessage(
+                        MessageType.AUCTION_ENDED,
+                        session.item.getId(),
+                        session.currentHighestBidderName != null ? session.currentHighestBidderName : "Khong co",
+                        session.currentHighestBid,
+                        true
+                ));
+            }
+        }
     }
 
     public static void handleItemRequest(Item item) {
@@ -154,6 +165,7 @@ public class AuctionServer {
         request.setStatus(DepositStatus.PENDING);
         pendingDeposits.put(request.getId(), request);
         DatabaseConnection.getInstance().getDepositRequestTable().add(request);
+        DatabaseConnection.getInstance().save();
         broadcastToAdmins(new AuctionMessage(MessageType.DEPOSIT_PENDING, request));
     }
 
@@ -162,6 +174,7 @@ public class AuctionServer {
         if (request == null) return;
         request.setStatus(DepositStatus.APPROVED);
         addBalance(request.getUsername(), request.getAmount());
+        DatabaseConnection.getInstance().save();
         broadcast(new AuctionMessage(MessageType.DEPOSIT_APPROVED, request));
     }
 
@@ -169,6 +182,7 @@ public class AuctionServer {
         DepositRequest request = pendingDeposits.remove(depositId);
         if (request == null) return;
         request.setStatus(DepositStatus.REJECTED);
+        DatabaseConnection.getInstance().save();
         broadcast(new AuctionMessage(MessageType.DEPOSIT_REJECTED, request));
     }
 
@@ -249,10 +263,12 @@ public class AuctionServer {
         for (int i = 0; i < items.size(); i++) {
             if (item.getId().equals(items.get(i).getId())) {
                 items.set(i, item);
+                DatabaseConnection.getInstance().save();
                 return;
             }
         }
         items.add(item);
+        DatabaseConnection.getInstance().save();
     }
 
     private static void addBalance(String username, long amount) {

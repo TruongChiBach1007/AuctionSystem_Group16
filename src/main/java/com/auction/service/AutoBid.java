@@ -1,7 +1,11 @@
 package com.auction.service;
 import com.auction.model.users.Bidder;
 
-public class AutoBid {
+import java.io.Serializable;
+
+public class AutoBid implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private Bidder bidder;
     private double maxBid;
     private double increment;
