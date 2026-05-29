@@ -320,11 +320,26 @@ public class AuctionRoomController {
         if (!autoBidCheckBox.isSelected()) return;
         if (currentUser == null) return;
 
+        // Bắt buộc nhập đủ cả hai trường trước khi chạy auto-bid
+        if (maxBidField.getText().isBlank() || stepBidField.getText().isBlank()) {
+            autoBidCheckBox.setSelected(false);
+            javafx.application.Platform.runLater(() -> {
+                statusLabel.setText("⚠ Vui lòng nhập Hạn mức tối đa và Bước nhảy để dùng tính năng tăng giá tự động!");
+                statusLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+            });
+            return;
+        }
+
         try {
-            double step = stepBidField.getText().isEmpty() ? 500.0 : Double.parseDouble(stepBidField.getText());
-            double limit = maxBidField.getText().isEmpty()
-                    ? currentUser.getBalance()
-                    : Math.min(Double.parseDouble(maxBidField.getText()), currentUser.getBalance());
+            double step = Double.parseDouble(stepBidField.getText().trim());
+            double limit = Math.min(Double.parseDouble(maxBidField.getText().trim()), currentUser.getBalance());
+
+            if (step <= 0) {
+                autoBidCheckBox.setSelected(false);
+                statusLabel.setText("⚠ Bước nhảy phải lớn hơn 0!");
+                statusLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+                return;
+            }
 
             if (latestPrice < limit) {
                 double myNewBid = latestPrice + step;
