@@ -1,6 +1,6 @@
 # 🏷️ AuctionSystem Group16
 
-Hệ thống đấu giá trực tuyến realtime được xây dựng cho bài tập lớn môn **Lập trình nâng cao - LTNC 2026**.
+Hệ thống đấu giá trực tuyến realtime được xây dựng cho bài tập lớn môn **Lập trình nâng cao**.
 
 Ứng dụng mô phỏng một sàn đấu giá online theo kiến trúc **Client-Server**, sử dụng **Java**, **JavaFX**, **FXML**, **Socket**, **Maven**, **JUnit** và **Java Serialization**. Người dùng có thể đăng ký, đăng nhập, đăng sản phẩm, tham gia đấu giá, đặt giá realtime, nạp tiền chờ admin duyệt và theo dõi lịch sử giá bằng biểu đồ.
 
