@@ -13,8 +13,8 @@ Hệ thống đấu giá trực tuyến realtime được xây dựng cho bài t
 - **Repository:** `https://github.com/TruongChiBach1007/AuctionSystem_Group16`
 - **Nhánh nộp cuối cùng:** `main`
 - **File JAR:** `release/auction-system-group16.jar`
-- **Báo cáo PDF:** https://drive.google.com/file/d/1HQXU1IQpXCRakXXfAKbZXlahhb9qiMYd/view?usp=sharing
-- **Video demo:** `[Cập nhật link video tại đây]`
+- **Báo cáo PDF:** https://drive.google.com/file/d/1jq6-VmKx8_FJadT0niQa7UX2g_u7yyXk/view?usp=sharing
+- **Video demo:** https://drive.google.com/file/d/1x162AWPka7NMA3GpYWg_KgXi6VyPs0Nf/view?usp=sharing
 
 ---
 
