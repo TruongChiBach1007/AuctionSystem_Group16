@@ -175,7 +175,13 @@
                             style="-fx-background-color: #27ae60; -fx-text-fill: white;
                                    -fx-font-weight: bold; -fx-padding: 8 15;
                                    -fx-background-radius: 5; -fx-cursor: hand;"/>
-                    <Button text="❌ Từ chối" onAction="#handleRejectProduct"
+
+                    <Button text="⚠️ Từ chối" onAction="#handleRejectProduct"
+                            style="-fx-background-color: #e67e22; -fx-text-fill: white;
+                                   -fx-font-weight: bold; -fx-padding: 8 15;
+                                   -fx-background-radius: 5; -fx-cursor: hand;"/>
+
+                    <Button text="🗑️ Xóa sản phẩm" onAction="#handleDeleteProduct"
                             style="-fx-background-color: #e74c3c; -fx-text-fill: white;
                                    -fx-font-weight: bold; -fx-padding: 8 15;
                                    -fx-background-radius: 5; -fx-cursor: hand;"/>

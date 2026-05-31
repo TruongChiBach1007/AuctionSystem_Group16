@@ -142,6 +142,9 @@ public class BidderDashboardController {
             if (message.getType() == MessageType.ITEM_APPROVED && message.getItem() != null) {
                 upsertApprovedItem(message.getItem());
                 renderAll();
+            } else if (message.getType() == MessageType.DELETE_ITEM && message.getItemId() != null) { // ✅ THÊM
+                approvedItems.removeIf(item -> item.getId().equals(message.getItemId()));             // ✅ THÊM
+                renderAll();                                                                           // ✅ THÊM
             } else if (message.getType() == MessageType.DEPOSIT_APPROVED
                     && message.getDepositRequest() != null
                     && currentUsername.equalsIgnoreCase(message.getDepositRequest().getUsername())) {
@@ -886,31 +889,60 @@ public class BidderDashboardController {
 
     private Item buildItemFromForm(String category, String name, String desc,
                                    String priceText, String imageUrl, String extra) {
-        if (category == null || name == null || name.isBlank()
-                || priceText == null || priceText.isBlank()) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập danh mục, tên và giá.");
+        // Kiểm tra đầy đủ tất cả các trường bắt buộc
+        if (category == null || category.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Thiếu thông tin", "Vui lòng chọn danh mục sản phẩm.");
             return null;
         }
+        if (name == null || name.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Thiếu thông tin", "Vui lòng nhập tên sản phẩm.");
+            return null;
+        }
+        if (desc == null || desc.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Thiếu thông tin", "Vui lòng nhập mô tả sản phẩm.");
+            return null;
+        }
+        if (priceText == null || priceText.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Thiếu thông tin", "Vui lòng nhập giá khởi điểm.");
+            return null;
+        }
+        if (extra == null || extra.isBlank()) {
+            String fieldName = switch (category) {
+                case "Electronics" -> "số tháng bảo hành";
+                case "Art"         -> "tên nghệ sĩ";
+                case "Vehicle"     -> "dung tích động cơ (cc)";
+                default            -> "thông tin bổ sung";
+            };
+            showAlert(Alert.AlertType.ERROR, "Thiếu thông tin", "Vui lòng nhập " + fieldName + ".");
+            return null;
+        }
+        if (imageUrl == null || imageUrl.isBlank()) {
+            showAlert(Alert.AlertType.ERROR, "Thiếu thông tin", "Vui lòng chọn ảnh sản phẩm.");
+            return null;
+        }
+
         try {
             double price = Double.parseDouble(priceText.trim().replace(",", ""));
+            if (price <= 0) {
+                showAlert(Alert.AlertType.ERROR, "Giá không hợp lệ", "Giá khởi điểm phải lớn hơn 0.");
+                return null;
+            }
             String id = UUID.randomUUID().toString();
             Item item;
             switch (category) {
                 case "Electronics" -> {
                     Electronics el = new Electronics(id, name.trim(), desc.trim(), price, price);
-                    if (extra != null && !extra.isBlank())
-                        el.setWarrantyMonths(Integer.parseInt(extra.trim()));
+                    el.setWarrantyMonths(Integer.parseInt(extra.trim()));
                     item = el;
                 }
                 case "Art" -> {
                     Art art = new Art(id, name.trim(), desc.trim(), price, price);
-                    art.setArtist(extra == null ? "" : extra.trim());
+                    art.setArtist(extra.trim());
                     item = art;
                 }
                 case "Vehicle" -> {
                     Vehicle vehicle = new Vehicle(id, name.trim(), desc.trim(), price, price);
-                    if (extra != null && !extra.isBlank())
-                        vehicle.setEngineCapacity(Double.parseDouble(extra.trim()));
+                    vehicle.setEngineCapacity(Double.parseDouble(extra.trim()));
                     item = vehicle;
                 }
                 default -> {
@@ -922,7 +954,7 @@ public class BidderDashboardController {
             item.setStatus(ItemStatus.PENDING);
             return item;
         } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá hoặc thông tin thêm phải là số.");
+            showAlert(Alert.AlertType.ERROR, "Giá trị không hợp lệ", "Giá hoặc thông tin bổ sung phải là số hợp lệ.");
             return null;
         }
     }

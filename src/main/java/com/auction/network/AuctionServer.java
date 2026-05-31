@@ -111,6 +111,10 @@ public class AuctionServer {
         for (Item item : pendingItems.values()) {
             client.sendToClient(new AuctionMessage(MessageType.ITEM_PENDING, item));
         }
+        // Gửi toàn bộ sản phẩm đã duyệt để admin thấy và có thể xóa
+        for (Item item : approvedItems.values()) {
+            client.sendToClient(new AuctionMessage(MessageType.ITEM_APPROVED, item));
+        }
         for (DepositRequest request : pendingDeposits.values()) {
             client.sendToClient(new AuctionMessage(MessageType.DEPOSIT_PENDING, request));
         }
@@ -119,18 +123,10 @@ public class AuctionServer {
 
     public static void registerBidder(ClientHandler client) {
         bidders.add(client);
-        for (Item item : approvedItems.values()) {
-            client.sendToClient(new AuctionMessage(MessageType.ITEM_APPROVED, item));
-        }
-        for (AuctionSession session : auctionSessions.values()) {
-            if (session.stopped || session.remainingSeconds() <= 0) {
-                client.sendToClient(new AuctionMessage(
-                        MessageType.AUCTION_ENDED,
-                        session.item.getId(),
-                        session.currentHighestBidderName != null ? session.currentHighestBidderName : "Khong co",
-                        session.currentHighestBid,
-                        true
-                ));
+        // ✅ Chỉ gửi items còn trong DB (đã sync với deleteItem)
+        for (Item item : DatabaseConnection.getInstance().getItemTable()) {
+            if (item.getStatus() == ItemStatus.APPROVED) {
+                client.sendToClient(new AuctionMessage(MessageType.ITEM_APPROVED, item));
             }
         }
     }
@@ -160,12 +156,26 @@ public class AuctionServer {
         broadcast(new AuctionMessage(MessageType.ITEM_REJECTED, item));
     }
 
+    public static void deleteItem(String itemId) {
+        // Xóa khỏi danh sách approved
+        Item item = approvedItems.remove(itemId);
+        if (item == null) return;
+        // Xóa khỏi database
+        DatabaseConnection.getInstance().getItemTable().removeIf(i -> i.getId().equals(itemId));
+        // Dừng phiên đấu giá nếu đang chạy
+        AuctionSession session = auctionSessions.get(itemId);
+        if (session != null) {
+            session.stopped = true;
+        }
+        // Broadcast cho tất cả client (bidder mất sản phẩm, admin cập nhật danh sách)
+        broadcast(new AuctionMessage(MessageType.DELETE_ITEM, itemId, true));
+    }
+
     public static void handleDepositRequest(DepositRequest request) {
         if (request == null || request.getAmount() <= 0) return;
         request.setStatus(DepositStatus.PENDING);
         pendingDeposits.put(request.getId(), request);
         DatabaseConnection.getInstance().getDepositRequestTable().add(request);
-        DatabaseConnection.getInstance().save();
         broadcastToAdmins(new AuctionMessage(MessageType.DEPOSIT_PENDING, request));
     }
 
@@ -174,7 +184,6 @@ public class AuctionServer {
         if (request == null) return;
         request.setStatus(DepositStatus.APPROVED);
         addBalance(request.getUsername(), request.getAmount());
-        DatabaseConnection.getInstance().save();
         broadcast(new AuctionMessage(MessageType.DEPOSIT_APPROVED, request));
     }
 
@@ -182,7 +191,6 @@ public class AuctionServer {
         DepositRequest request = pendingDeposits.remove(depositId);
         if (request == null) return;
         request.setStatus(DepositStatus.REJECTED);
-        DatabaseConnection.getInstance().save();
         broadcast(new AuctionMessage(MessageType.DEPOSIT_REJECTED, request));
     }
 
@@ -263,12 +271,10 @@ public class AuctionServer {
         for (int i = 0; i < items.size(); i++) {
             if (item.getId().equals(items.get(i).getId())) {
                 items.set(i, item);
-                DatabaseConnection.getInstance().save();
                 return;
             }
         }
         items.add(item);
-        DatabaseConnection.getInstance().save();
     }
 
     private static void addBalance(String username, long amount) {

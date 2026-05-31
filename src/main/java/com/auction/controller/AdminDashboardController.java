@@ -84,15 +84,25 @@ public class AdminDashboardController {
 
     private final ObservableList<User> userList = FXCollections.observableArrayList();
     private final ObservableList<Item> pendingItems = FXCollections.observableArrayList();
+    private final ObservableList<Item> allItems = FXCollections.observableArrayList(); // pending + approved
     private final ObservableList<DepositRequest> pendingDeposits = FXCollections.observableArrayList();
     private final ObservableList<AuctionSummary> auctionList = FXCollections.observableArrayList();
     private AuctionClient auctionClient;
 
     @FXML
     public void initialize() {
-        pendingItems.addAll(DatabaseConnection.getInstance().getItemTable().stream()
+        // Load sản phẩm chờ duyệt
+        DatabaseConnection.getInstance().getItemTable().stream()
                 .filter(item -> item.getStatus() == ItemStatus.PENDING)
-                .toList());
+                .forEach(item -> {
+                    pendingItems.add(item);
+                    allItems.add(item);
+                });
+        // Load sản phẩm đã duyệt vào allItems
+        DatabaseConnection.getInstance().getItemTable().stream()
+                .filter(item -> item.getStatus() == ItemStatus.APPROVED)
+                .forEach(allItems::add);
+
         pendingDeposits.addAll(DatabaseConnection.getInstance().getDepositRequestTable().stream()
                 .filter(request -> request.getStatus() == DepositStatus.PENDING)
                 .toList());
@@ -150,7 +160,7 @@ public class AdminDashboardController {
         colProductPrice.setCellValueFactory(new PropertyValueFactory<>("startingPrice"));
         colProductSeller.setCellValueFactory(new PropertyValueFactory<>("sellerName"));
         colProductStatus.setCellValueFactory(new PropertyValueFactory<>("statusText"));
-        tableProducts.setItems(pendingItems);
+        tableProducts.setItems(allItems); // Hiện cả pending + approved
     }
 
     private void setupDepositTable() {
@@ -190,12 +200,20 @@ public class AdminDashboardController {
 
         Platform.runLater(() -> {
             if (message.getType() == MessageType.ITEM_PENDING && message.getItem() != null) {
+                // Sản phẩm mới chờ duyệt
                 pendingItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
                 pendingItems.add(0, message.getItem());
-            } else if ((message.getType() == MessageType.ITEM_APPROVED
-                    || message.getType() == MessageType.ITEM_REJECTED)
-                    && message.getItem() != null) {
-                pendingItems.removeIf(item -> item.getId().equals(message.getItemId()));
+                allItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
+                allItems.add(0, message.getItem());
+            } else if (message.getType() == MessageType.ITEM_APPROVED && message.getItem() != null) {
+                // Sản phẩm được duyệt: xóa khỏi pending, cập nhật allItems với status mới
+                pendingItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
+                allItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
+                allItems.add(message.getItem()); // thêm lại với status APPROVED
+            } else if (message.getType() == MessageType.ITEM_REJECTED && message.getItem() != null) {
+                // Bị từ chối hoặc bị xóa: xóa khỏi cả hai list
+                pendingItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
+                allItems.removeIf(item -> item.getId().equals(message.getItem().getId()));
             } else if (message.getType() == MessageType.DEPOSIT_PENDING
                     && message.getDepositRequest() != null) {
                 pendingDeposits.removeIf(r -> r.getId().equals(message.getDepositRequest().getId()));
@@ -322,11 +340,53 @@ public class AdminDashboardController {
             showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để từ chối!");
             return;
         }
+        if (selected.getStatus() == ItemStatus.APPROVED) {
+            showAlert(Alert.AlertType.WARNING, "Không hợp lệ",
+                    "Sản phẩm đã duyệt không thể từ chối. Dùng nút Xóa để xóa khỏi hệ thống.");
+            return;
+        }
         if (auctionClient != null)
             auctionClient.send(new AuctionMessage(MessageType.REJECT_ITEM, selected.getId(), true));
         pendingItems.remove(selected);
+        allItems.remove(selected);
         updateOverview();
         showAlert(Alert.AlertType.INFORMATION, "Đã từ chối", "Sản phẩm đã bị từ chối!");
+    }
+
+    @FXML
+    public void handleDeleteProduct(ActionEvent event) {
+        Item selected = tableProducts.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "Chưa chọn", "Vui lòng chọn sản phẩm để xóa!");
+            return;
+        }
+        // ✅ THÊM: chặn xóa sản phẩm mẫu
+        if (selected.getId().equals("item-1") || selected.getId().equals("item-2")) {
+            showAlert(Alert.AlertType.WARNING, "Không thể xóa", "Đây là sản phẩm mẫu của hệ thống, không thể xóa!");
+            return;
+        }
+        if (selected.getStatus() != ItemStatus.APPROVED) {
+            showAlert(Alert.AlertType.WARNING, "Không hợp lệ",
+                    "Chỉ có thể xóa sản phẩm đã được duyệt. Dùng Từ chối cho sản phẩm đang chờ.");
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Xác nhận xóa");
+        confirm.setHeaderText(null);
+        confirm.setContentText("Xóa \"" + selected.getName() + "\" khỏi hệ thống? "
+                + "Sản phẩm sẽ biến mất khỏi danh sách của tất cả Bidder.");
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (auctionClient != null)
+                    auctionClient.send(new AuctionMessage(MessageType.DELETE_ITEM, selected.getId(), true));
+                allItems.remove(selected);
+                DatabaseConnection.getInstance().getItemTable().remove(selected);
+                DatabaseConnection.getInstance().save();
+                updateOverview();
+                showAlert(Alert.AlertType.INFORMATION, "Đã xóa",
+                        "Sản phẩm \"" + selected.getName() + "\" đã bị xóa khỏi hệ thống!");
+            }
+        });
     }
 
     @FXML

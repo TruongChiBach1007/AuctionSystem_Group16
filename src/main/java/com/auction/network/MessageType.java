@@ -9,6 +9,7 @@ public enum MessageType implements Serializable {
     ITEM_PENDING,
     APPROVE_ITEM,
     REJECT_ITEM,
+    DELETE_ITEM,
     ITEM_APPROVED,
     ITEM_REJECTED,
     DEPOSIT_REQUEST,
