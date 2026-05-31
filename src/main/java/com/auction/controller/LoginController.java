@@ -2,7 +2,7 @@ package com.auction.controller;
 
 import com.auction.model.users.Admin;
 import com.auction.model.users.User;
-import com.auction.security.AuthService;
+import com.auction.service.AuthService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

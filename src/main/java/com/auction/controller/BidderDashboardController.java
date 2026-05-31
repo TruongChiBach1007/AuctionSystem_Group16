@@ -10,7 +10,7 @@ import com.auction.model.users.Bidder;
 import com.auction.network.AuctionClient;
 import com.auction.network.AuctionMessage;
 import com.auction.network.MessageType;
-import com.auction.security.AuthService;
+import com.auction.service.AuthService;
 import com.auction.utils.DatabaseConnection;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -829,7 +829,10 @@ public class BidderDashboardController {
 
     @FXML
     public void handleLogout(ActionEvent event) {
-        if (auctionClient != null) auctionClient.close();
+        if (auctionClient != null) {
+            auctionClient.close();
+            auctionClient = null;
+        }
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/auction/login-view.fxml"));

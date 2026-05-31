@@ -23,9 +23,10 @@ public class DatabaseConnection {
     private static final String DEFAULT_DATA_FILE = "data/auction-data.ser";
     private static DatabaseConnection instance;
 
-    private final List<User> userTable;
-    private final List<Item> itemTable;
-    private final List<DepositRequest> depositRequestTable;
+    // ✅ SỬA: bỏ final để có thể reload
+    private List<User> userTable;
+    private List<Item> itemTable;
+    private List<DepositRequest> depositRequestTable;
 
     private DatabaseConnection() {
         DataSnapshot snapshot = loadSnapshot();
@@ -47,6 +48,23 @@ public class DatabaseConnection {
             instance = new DatabaseConnection();
         }
         return instance;
+    }
+
+    /**
+     * ✅ THÊM MỚI: Reload toàn bộ dữ liệu từ file .ser về RAM.
+     * Gọi method này trước khi login để đảm bảo lấy data mới nhất
+     * (ví dụ: admin đã xác nhận nạp tiền và save() rồi).
+     */
+    public synchronized void reload() {
+        DataSnapshot snapshot = loadSnapshot();
+        if (snapshot != null) {
+            userTable.clear();
+            userTable.addAll(snapshot.users);
+            itemTable.clear();
+            itemTable.addAll(snapshot.items);
+            depositRequestTable.clear();
+            depositRequestTable.addAll(snapshot.depositRequests);
+        }
     }
 
     public synchronized void save() {

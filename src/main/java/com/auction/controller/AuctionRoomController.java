@@ -7,7 +7,7 @@ import com.auction.model.users.User;
 import com.auction.network.AuctionClient;
 import com.auction.network.AuctionMessage;
 import com.auction.network.MessageType;
-import com.auction.security.AuthService;
+import com.auction.service.AuthService;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
