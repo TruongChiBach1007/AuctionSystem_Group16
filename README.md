@@ -284,8 +284,8 @@ Một số `MessageType` chính:
 |------------|-----------------------------------------------|---|
 | Việt Dũng  | Cấu trúc hệ thống, dữ liệu, quản lý người dùng | Maven, Git/GitHub, CI/CD, `User`, `Admin`, đăng ký/đăng nhập, DAO, `DatabaseConnection`, Singleton |
 | Hoàng Minh | Giao diện Client MVC, quản lý sản phẩm        | JavaFX/FXML, dashboard, danh sách sản phẩm, chi tiết sản phẩm, đăng sản phẩm, `Item`, `Electronics`, `Art`, `Vehicle`, Factory Method, LineChart |
-| Minh Duy   | Cốt lõi đấu giá, giao tiếp mạng               | Socket Client-Server, `AuctionServer`, `AuctionClient`, `AuctionMessage`, logic đặt giá, realtime update, xử lý mở/dừng phiên |
-| Chí Bách   | Thuật toán nâng cao, xử lý lỗi, kiểm thử      | Concurrent bidding, auto-bidding, anti-sniping, xử lý ngoại lệ, JUnit tests |
+| Minh Duy   | Cốt lõi đấu giá, giao tiếp mạng               | Socket Client-Server, `AuctionServer`, `AuctionClient`, `AuctionMessage`, realtime update, xử lý mở/dừng phiên |
+| Chí Bách   | Logic đấu giá,Thuật toán nâng cao, xử lý lỗi, kiểm thử      | Concurrent bidding, auto-bidding, anti-sniping, xử lý ngoại lệ, JUnit tests |
 
 ---
 
